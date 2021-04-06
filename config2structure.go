@@ -9,6 +9,10 @@ import (
 	//	"sort"
 )
 
+type DynamicStruct interface {
+	SetDynamicType()
+}
+
 // Unmarshal full yaml into the configuration structure
 func UnmarshalYaml(data []byte, config interface{}) error {
 
@@ -58,8 +62,8 @@ func decode(name string, input interface{}, outVal reflect.Value) error {
 	switch outputKind {
 	case reflect.Bool:
 		err = decodeBool(name, input, outVal)
-		//	case reflect.Interface:
-		//		err = decodeBasic(name, input, outVal)
+	case reflect.Interface:
+		err = decodeBasic(name, input, outVal)
 	case reflect.String:
 		err = decodeString(name, input, outVal)
 	case reflect.Int:
@@ -86,6 +90,64 @@ func decode(name string, input interface{}, outVal reflect.Value) error {
 	}
 
 	return err
+}
+
+// This decodes a basic type (bool, int, string, etc.) and sets the
+// value to "data" of that type.
+func decodeBasic(name string, data interface{}, val reflect.Value) error {
+	if val.IsValid() && val.Elem().IsValid() {
+		elem := val.Elem()
+
+		// If we can't address this element, then its not writable. Instead,
+		// we make a copy of the value (which is a pointer and therefore
+		// writable), decode into that, and replace the whole value.
+		copied := false
+		if !elem.CanAddr() {
+			copied = true
+
+			// Make *T
+			copy := reflect.New(elem.Type())
+
+			// *T = elem
+			copy.Elem().Set(elem)
+
+			// Set elem so we decode into it
+			elem = copy
+		}
+
+		// Decode. If we have an error then return. We also return right
+		// away if we're not a copy because that means we decoded directly.
+		if err := decode(name, data, elem); err != nil || !copied {
+			return err
+		}
+
+		// If we're a copy, we need to set te final result
+		val.Set(elem.Elem())
+		return nil
+	}
+
+	dataVal := reflect.ValueOf(data)
+
+	// If the input data is a pointer, and the assigned type is the dereference
+	// of that exact pointer, then indirect it so that we can assign it.
+	// Example: *string to string
+	if dataVal.Kind() == reflect.Ptr && dataVal.Type().Elem() == val.Type() {
+		dataVal = reflect.Indirect(dataVal)
+	}
+
+	if !dataVal.IsValid() {
+		dataVal = reflect.Zero(val.Type())
+	}
+
+	dataValType := dataVal.Type()
+	if !dataValType.AssignableTo(val.Type()) {
+		return fmt.Errorf(
+			"'%s' expected type '%s', got '%s'",
+			name, val.Type(), dataValType)
+	}
+
+	val.Set(dataVal)
+	return nil
 }
 
 func decodeBool(name string, data interface{}, val reflect.Value) error {
@@ -336,88 +398,88 @@ func decodeStruct(name string, data interface{}, val reflect.Value) error {
 	}
 }
 
-func decodeMapFromStruct(name string, dataVal reflect.Value, val reflect.Value, valMap reflect.Value) error {
-
-	fmt.Println("decodeMapFromStruct")
-
-	typ := dataVal.Type()
-	for i := 0; i < typ.NumField(); i++ {
-		// Get the StructField first since this is a cheap operation. If the
-		// field is unexported, then ignore it.
-		f := typ.Field(i)
-		if f.PkgPath != "" {
-			continue
-		}
-
-		// Next get the actual value of this field and verify it is assignable
-		// to the map value.
-		v := dataVal.Field(i)
-		if !v.Type().AssignableTo(valMap.Type().Elem()) {
-			return fmt.Errorf("cannot assign type '%s' to map value field of type '%s'", v.Type(), valMap.Type().Elem())
-		}
-
-		tagValue := f.Tag.Get("c2s")
-		keyName := f.Name
-
-		// Determine the name of the key in the map
-		if index := strings.Index(tagValue, ","); index != -1 {
-			if tagValue[:index] == "-" {
-				continue
-			}
-			// If "omitempty" is specified in the tag, it ignores empty values.
-			if strings.Index(tagValue[index+1:], "omitempty") != -1 && isEmptyValue(v) {
-				continue
-			}
-
-			keyName = tagValue[:index]
-		} else if len(tagValue) > 0 {
-			if tagValue == "-" {
-				continue
-			}
-			keyName = tagValue
-		}
-
-		switch v.Kind() {
-		// this is an embedded struct, so handle it differently
-		case reflect.Struct:
-			x := reflect.New(v.Type())
-			x.Elem().Set(v)
-
-			vType := valMap.Type()
-			vKeyType := vType.Key()
-			vElemType := vType.Elem()
-			mType := reflect.MapOf(vKeyType, vElemType)
-			vMap := reflect.MakeMap(mType)
-
-			// Creating a pointer to a map so that other methods can completely
-			// overwrite the map if need be (looking at you decodeMapFromMap). The
-			// indirection allows the underlying map to be settable (CanSet() == true)
-			// where as reflect.MakeMap returns an unsettable map.
-			addrVal := reflect.New(vMap.Type())
-			reflect.Indirect(addrVal).Set(vMap)
-
-			err := decode(keyName, x.Interface(), reflect.Indirect(addrVal))
-			if err != nil {
-				return err
-			}
-
-			// the underlying map may have been completely overwritten so pull
-			// it indirectly out of the enclosing value.
-			vMap = reflect.Indirect(addrVal)
-
-			valMap.SetMapIndex(reflect.ValueOf(keyName), vMap)
-
-		default:
-			valMap.SetMapIndex(reflect.ValueOf(keyName), v)
-		}
-	}
-
-	if val.CanAddr() {
-		val.Set(valMap)
-	}
-
-	return nil
-}
+//func decodeMapFromStruct(name string, dataVal reflect.Value, val reflect.Value, valMap reflect.Value) error {
+//
+//	fmt.Println("decodeMapFromStruct")
+//
+//	typ := dataVal.Type()
+//	for i := 0; i < typ.NumField(); i++ {
+//		// Get the StructField first since this is a cheap operation. If the
+//		// field is unexported, then ignore it.
+//		f := typ.Field(i)
+//		if f.PkgPath != "" {
+//			continue
+//		}
+//
+//		// Next get the actual value of this field and verify it is assignable
+//		// to the map value.
+//		v := dataVal.Field(i)
+//		if !v.Type().AssignableTo(valMap.Type().Elem()) {
+//			return fmt.Errorf("cannot assign type '%s' to map value field of type '%s'", v.Type(), valMap.Type().Elem())
+//		}
+//
+//		tagValue := f.Tag.Get("c2s")
+//		keyName := f.Name
+//
+//		// Determine the name of the key in the map
+//		if index := strings.Index(tagValue, ","); index != -1 {
+//			if tagValue[:index] == "-" {
+//				continue
+//			}
+//			// If "omitempty" is specified in the tag, it ignores empty values.
+//			if strings.Index(tagValue[index+1:], "omitempty") != -1 && isEmptyValue(v) {
+//				continue
+//			}
+//
+//			keyName = tagValue[:index]
+//		} else if len(tagValue) > 0 {
+//			if tagValue == "-" {
+//				continue
+//			}
+//			keyName = tagValue
+//		}
+//
+//		switch v.Kind() {
+//		// this is an embedded struct, so handle it differently
+//		case reflect.Struct:
+//			x := reflect.New(v.Type())
+//			x.Elem().Set(v)
+//
+//			vType := valMap.Type()
+//			vKeyType := vType.Key()
+//			vElemType := vType.Elem()
+//			mType := reflect.MapOf(vKeyType, vElemType)
+//			vMap := reflect.MakeMap(mType)
+//
+//			// Creating a pointer to a map so that other methods can completely
+//			// overwrite the map if need be (looking at you decodeMapFromMap). The
+//			// indirection allows the underlying map to be settable (CanSet() == true)
+//			// where as reflect.MakeMap returns an unsettable map.
+//			addrVal := reflect.New(vMap.Type())
+//			reflect.Indirect(addrVal).Set(vMap)
+//
+//			err := decode(keyName, x.Interface(), reflect.Indirect(addrVal))
+//			if err != nil {
+//				return err
+//			}
+//
+//			// the underlying map may have been completely overwritten so pull
+//			// it indirectly out of the enclosing value.
+//			vMap = reflect.Indirect(addrVal)
+//
+//			valMap.SetMapIndex(reflect.ValueOf(keyName), vMap)
+//
+//		default:
+//			valMap.SetMapIndex(reflect.ValueOf(keyName), v)
+//		}
+//	}
+//
+//	if val.CanAddr() {
+//		val.Set(valMap)
+//	}
+//
+//	return nil
+//}
 
 func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 
@@ -461,39 +523,52 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		field, fieldValue := f.field, f.val
 		fieldName := field.Name
 
-		tagValue := field.Tag.Get("c2s")
-		tagValue = strings.SplitN(tagValue, ",", 2)[0]
+		tags := field.Tag.Get("c2s")
+		fmt.Println("tags:", tags)
+		tagSlice := strings.Split(tags, ",")
+		tagValue := tagSlice[0]
+		tagDynamic := ""
+		if len(tagSlice) > 1 {
+			tagDynamic = tagSlice[1]
+		}
+
+		// use tag if present
 		if tagValue != "" {
 			fieldName = tagValue
 		} else {
 			return fmt.Errorf("tag value not set")
 		}
 
+		// cast to type if tagDynamic is present
+		if tagDynamic != "" {
+			fieldValue.Interface().(DynamicStruct).SetDynamicType()
+		}
+
 		rawMapKey := reflect.ValueOf(fieldName)
 		rawMapVal := dataVal.MapIndex(rawMapKey)
-		if !rawMapVal.IsValid() {
-			// Do a slower search by iterating over each key and
-			// doing case-insensitive search.
-			for dataValKey := range dataValKeys {
-				mK, ok := dataValKey.Interface().(string)
-				if !ok {
-					// Not a string key
-					return fmt.Errorf("not a string key")
-				}
-
-				if strings.EqualFold(mK, fieldName) {
-					rawMapKey = dataValKey
-					rawMapVal = dataVal.MapIndex(dataValKey)
-					break
-				}
-			}
-
-			if !rawMapVal.IsValid() {
-				// There was no matching key in the map for the value in
-				// the struct. Just ignore.
-				return fmt.Errorf("not valid")
-			}
-		}
+		//		if !rawMapVal.IsValid() {
+		//			// Do a slower search by iterating over each key and
+		//			// doing case-insensitive search.
+		//			for dataValKey := range dataValKeys {
+		//				mK, ok := dataValKey.Interface().(string)
+		//				if !ok {
+		//					// Not a string key
+		//					return fmt.Errorf("not a string key")
+		//				}
+		//
+		//				if strings.EqualFold(mK, fieldName) {
+		//					rawMapKey = dataValKey
+		//					rawMapVal = dataVal.MapIndex(dataValKey)
+		//					break
+		//				}
+		//			}
+		//
+		//			if !rawMapVal.IsValid() {
+		//				// There was no matching key in the map for the value in
+		//				// the struct. Just ignore.
+		//				return fmt.Errorf("not valid")
+		//			}
+		//		}
 
 		if !fieldValue.IsValid() {
 			// This should never happen

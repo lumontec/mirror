@@ -11,37 +11,37 @@ import (
 )
 
 type Config struct {
-	Name string `c2s:"name"`
-	//	DynElm DynConfig `c2s:"dynelement,dynamic"`
+	Name   string    `c2s:"name"`
+	DynElm DynConfig `c2s:"dynelement,dynamic"`
 }
 
-//type DynConfig struct {
-//	Type   string `c2s:"type"`
-//	Config interface{}
-//}
-//
-//func (dc *DynConfig) SetDynamicType() {
-//	switch dc.Type {
-//	case "myfloat":
-//		{
-//			dc.Config = MyFloatConfig{}
-//		}
-//	case "myint":
-//		{
-//			dc.Config = MyIntConfig{}
-//		}
-//	}
-//}
-//
-//type MyFloatConfig struct {
-//	Key   string  `c2s:"key"`
-//	Value float64 `c2s:"value"`
-//}
-//
-//type MyIntConfig struct {
-//	Key   string `c2s:"key"`
-//	Value int    `c2s:"value"`
-//}
+type DynConfig struct {
+	Type   string      `c2s:"type"`
+	Config interface{} `c2s:"config"`
+}
+
+func (dc DynConfig) SetDynamicType() {
+	switch dc.Type {
+	case "myfloat":
+		{
+			dc.Config = MyFloatConfig{}
+		}
+	case "myint":
+		{
+			dc.Config = MyIntConfig{}
+		}
+	}
+}
+
+type MyFloatConfig struct {
+	Key   string  `c2s:"keyfloat"`
+	Value float64 `c2s:"valuefloat"`
+}
+
+type MyIntConfig struct {
+	Key   string `c2s:"keyin"`
+	Value int    `c2s:"valueint"`
+}
 
 //func TestStringDecode(t *testing.T) {
 //	t.Parallel()
@@ -66,6 +66,11 @@ func TestStructDecode(t *testing.T) {
 	var datastruct = `
         config:
           name: "myconfig"
+          dynelement:
+            type: "myint"
+            config:
+              keyint: "chiave"
+              valueint: 23
         `
 	var cfg = Config{}
 	err := UnmarshalYaml([]byte(datastruct), &cfg)
