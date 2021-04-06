@@ -19,7 +19,9 @@ func UnmarshalYaml(data []byte, config interface{}) error {
 		return fmt.Errorf("unmarshal yaml: %s", err)
 	}
 
-	err = decodeMapLevels(rawmap, config)
+	fmt.Printf("parsedmap: %#v", rawmap)
+
+	err = decodeMapLevels(rawmap["config"], config)
 	if err != nil {
 		return fmt.Errorf("decode map: %s", err)
 	}
@@ -261,51 +263,23 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 
 	errors := make([]string, 0)
 
-	//	// This slice will keep track of all the structs we'll be decoding.
-	//	// There can be more than one struct if there are embedded structs
-	//	// that are squashed.
-	//	structs := make([]reflect.Value, 1, 5)
-	//	structs[0] = val
-
-	// Compile the list of all the fields that we're going to be decoding
-	// from all the structs.
 	type field struct {
 		field reflect.StructField
 		val   reflect.Value
 	}
 
-	// remainField is set to a valid field set with the "remain" tag if
-	// we are keeping track of remaining values.
-	//	var remainField *field
-
 	fields := []field{}
 	structVal := val
 	structType := structVal.Type()
 
+	// Fill slice with all struct field values
 	for i := 0; i < structType.NumField(); i++ {
 		fieldType := structType.Field(i)
 		fieldVal := structVal.Field(i)
-		//		if fieldVal.Kind() == reflect.Ptr && fieldVal.Elem().Kind() == reflect.Struct {
-		//			// Handle embedded struct pointers as embedded structs.
-		//			fieldVal = fieldVal.Elem()
-		//		}
-
-		//			dynamic := false
-		//
-		//			// We always parse the tags cause we're looking for other tags too
-		//			tagParts := strings.Split(fieldType.Tag.Get("c2s"), ",")
-		//			for _, tag := range tagParts[1:] {
-		//				if tag == "dynamic" {
-		//					dynamic = true
-		//					break
-		//				}
-		//			}
-
-		// Normal struct field, store it away
 		fields = append(fields, field{fieldType, fieldVal})
 	}
 
-	// for fieldType, field := range fields {
+	// Fill each field with respective map value
 	for _, f := range fields {
 		field, fieldValue := f.field, f.val
 		fieldName := field.Name
@@ -314,6 +288,8 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		tagValue = strings.SplitN(tagValue, ",", 2)[0]
 		if tagValue != "" {
 			fieldName = tagValue
+		} else {
+			return fmt.Errorf("tag value not set")
 		}
 
 		rawMapKey := reflect.ValueOf(fieldName)
