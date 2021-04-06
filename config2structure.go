@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"reflect"
-	//	"sort"
-	//	"strconv"
+	"strconv"
 	"strings"
+	//	"sort"
 )
 
 // Unmarshal full yaml into the configuration structure
@@ -18,8 +18,6 @@ func UnmarshalYaml(data []byte, config interface{}) error {
 	if err != nil {
 		return fmt.Errorf("unmarshal yaml: %s", err)
 	}
-
-	fmt.Printf("parsedmap: %#v", rawmap)
 
 	err = decodeMapLevels(rawmap["config"], config)
 	if err != nil {
@@ -58,28 +56,28 @@ func decode(name string, input interface{}, outVal reflect.Value) error {
 	var err error
 	outputKind := getKind(outVal)
 	switch outputKind {
-	//	case reflect.Bool:
-	//		err = decodeBool(name, input, outVal)
-	//	case reflect.Interface:
-	//		err = decodeBasic(name, input, outVal)
+	case reflect.Bool:
+		err = decodeBool(name, input, outVal)
+		//	case reflect.Interface:
+		//		err = decodeBasic(name, input, outVal)
 	case reflect.String:
 		err = decodeString(name, input, outVal)
-		//	case reflect.Int:
-		//		err = decodeInt(name, input, outVal)
-		//	case reflect.Uint:
-		//		err = decodeUint(name, input, outVal)
-		//	case reflect.Float32:
-		//		err = decodeFloat(name, input, outVal)
+	case reflect.Int:
+		err = decodeInt(name, input, outVal)
+	case reflect.Uint:
+		err = decodeUint(name, input, outVal)
+	case reflect.Float32:
+		err = decodeFloat(name, input, outVal)
 	case reflect.Struct:
 		err = decodeStruct(name, input, outVal)
 		//	case reflect.Map:
 		//		err = decodeMap(name, input, outVal)
 		//	case reflect.Ptr:
 		//		err = decodePtr(name, input, outVal)
-		//	case reflect.Slice:
-		//		err = decodeSlice(name, input, outVal)
-		//	case reflect.Array:
-		//		err = decodeArray(name, input, outVal)
+	case reflect.Slice:
+		err = decodeSlice(name, input, outVal)
+	case reflect.Array:
+		err = decodeArray(name, input, outVal)
 		//	case reflect.Func:
 		//		err = decodeFunc(name, input, outVal)
 	default:
@@ -88,6 +86,185 @@ func decode(name string, input interface{}, outVal reflect.Value) error {
 	}
 
 	return err
+}
+
+func decodeBool(name string, data interface{}, val reflect.Value) error {
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataKind := getKind(dataVal)
+
+	switch {
+	case dataKind == reflect.Bool:
+		val.SetBool(dataVal.Bool())
+	default:
+		return fmt.Errorf(
+			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
+			name, val.Type(), dataVal.Type(), data)
+	}
+
+	return nil
+}
+
+func decodeInt(name string, data interface{}, val reflect.Value) error {
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataKind := getKind(dataVal)
+
+	switch {
+	case dataKind == reflect.Int:
+		val.SetInt(dataVal.Int())
+	case dataKind == reflect.Uint:
+		val.SetInt(int64(dataVal.Uint()))
+	case dataKind == reflect.Float32:
+		val.SetInt(int64(dataVal.Float()))
+	default:
+		return fmt.Errorf(
+			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
+			name, val.Type(), dataVal.Type(), data)
+	}
+
+	return nil
+}
+
+func decodeUint(name string, data interface{}, val reflect.Value) error {
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataKind := getKind(dataVal)
+
+	switch {
+	case dataKind == reflect.Int:
+		i := dataVal.Int()
+		val.SetUint(uint64(i))
+	case dataKind == reflect.Uint:
+		val.SetUint(dataVal.Uint())
+	case dataKind == reflect.Float32:
+		f := dataVal.Float()
+		val.SetUint(uint64(f))
+	default:
+		return fmt.Errorf(
+			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
+			name, val.Type(), dataVal.Type(), data)
+	}
+
+	return nil
+}
+
+func decodeFloat(name string, data interface{}, val reflect.Value) error {
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataKind := getKind(dataVal)
+
+	switch {
+	case dataKind == reflect.Int:
+		val.SetFloat(float64(dataVal.Int()))
+	case dataKind == reflect.Uint:
+		val.SetFloat(float64(dataVal.Uint()))
+	case dataKind == reflect.Float32:
+		val.SetFloat(dataVal.Float())
+	default:
+		return fmt.Errorf(
+			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
+			name, val.Type(), dataVal.Type(), data)
+	}
+
+	return nil
+}
+
+func decodeSlice(name string, data interface{}, val reflect.Value) error {
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataValKind := dataVal.Kind()
+	valType := val.Type()
+	valElemType := valType.Elem()
+	sliceType := reflect.SliceOf(valElemType)
+
+	// If we have a non array/slice type then we first attempt to convert.
+	if dataValKind != reflect.Array && dataValKind != reflect.Slice {
+		return fmt.Errorf(
+			"'%s': source data must be an array or slice, got %s", name, dataValKind)
+	}
+
+	// If the input value is nil, then don't allocate since empty != nil
+	if dataVal.IsNil() {
+		return nil
+	}
+
+	valSlice := val
+	if valSlice.IsNil() {
+		// Make a new slice to hold our result, same size as the original data.
+		valSlice = reflect.MakeSlice(sliceType, dataVal.Len(), dataVal.Len())
+	}
+
+	// Accumulate any errors
+	errors := make([]string, 0)
+
+	for i := 0; i < dataVal.Len(); i++ {
+		currentData := dataVal.Index(i).Interface()
+		for valSlice.Len() <= i {
+			valSlice = reflect.Append(valSlice, reflect.Zero(valElemType))
+		}
+		currentField := valSlice.Index(i)
+
+		fieldName := name + "[" + strconv.Itoa(i) + "]"
+		if err := decode(fieldName, currentData, currentField); err != nil {
+			errors = appendErrors(errors, err)
+		}
+	}
+
+	// Finally, set the value to the slice we built up
+	val.Set(valSlice)
+
+	// If there were errors, we return those
+	if len(errors) > 0 {
+		return &Error{errors}
+	}
+
+	return nil
+}
+
+func decodeArray(name string, data interface{}, val reflect.Value) error {
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataValKind := dataVal.Kind()
+	valType := val.Type()
+	valElemType := valType.Elem()
+	arrayType := reflect.ArrayOf(valType.Len(), valElemType)
+
+	valArray := val
+
+	if valArray.Interface() == reflect.Zero(valArray.Type()).Interface() {
+		// Check input type
+		if dataValKind != reflect.Array && dataValKind != reflect.Slice {
+			return fmt.Errorf(
+				"'%s': source data must be an array or slice, got %s", name, dataValKind)
+
+		}
+		if dataVal.Len() > arrayType.Len() {
+			return fmt.Errorf(
+				"'%s': expected source data to have length less or equal to %d, got %d", name, arrayType.Len(), dataVal.Len())
+
+		}
+
+		// Make a new array to hold our result, same size as the original data.
+		valArray = reflect.New(arrayType).Elem()
+	}
+
+	// Accumulate any errors
+	errors := make([]string, 0)
+
+	for i := 0; i < dataVal.Len(); i++ {
+		currentData := dataVal.Index(i).Interface()
+		currentField := valArray.Index(i)
+
+		fieldName := name + "[" + strconv.Itoa(i) + "]"
+		if err := decode(fieldName, currentData, currentField); err != nil {
+			errors = appendErrors(errors, err)
+		}
+	}
+
+	// Finally, set the value to the array we built up
+	val.Set(valArray)
+
+	// If there were errors, we return those
+	if len(errors) > 0 {
+		return &Error{errors}
+	}
+
+	return nil
 }
 
 func decodeString(name string, data interface{}, val reflect.Value) error {
