@@ -24,7 +24,7 @@ func UnmarshalYaml(data []byte, config interface{}) error {
 		return fmt.Errorf("unmarshal yaml: %s", err)
 	}
 
-	err = decodeMapLevels(rawmap["config"], config)
+	err = decodeMapLevels(rawmap, config)
 	if err != nil {
 		return fmt.Errorf("decode map: %s", err)
 	}
@@ -42,7 +42,7 @@ func UnmarshalJson(data []byte, config interface{}) error {
 		return fmt.Errorf("unmarshal json: %s", err)
 	}
 
-	err = decodeMapLevels(rawmap["config"], config)
+	err = decodeMapLevels(rawmap, config)
 	if err != nil {
 		return fmt.Errorf("decode map: %s", err)
 	}
@@ -508,10 +508,10 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 			selectValue := selectSlice[1]
 			rawMapSelectKey := reflect.ValueOf(selectValue)
 			rawMapKey := reflect.ValueOf(fieldName)
-			if dataVal.Kind() == reflect.Slice {
-				fmt.Println("rawmapval is slice")
-				return fmt.Errorf("rawmap is slice")
-			}
+			//			if dataVal.Kind() == reflect.Slice {
+			//				fmt.Println("rawmapval is slice")
+			//				return fmt.Errorf("rawmap is slice")
+			//			}
 			rawMapVal := dataVal.MapIndex(rawMapKey)
 			rawMapSelectVal := rawMapVal.Elem().MapIndex(rawMapSelectKey)
 			fmt.Printf("set select: %s \n", rawMapSelectVal.Interface().(string))

@@ -7,13 +7,17 @@ import (
 	//	"sort"
 	//	"strings"
 	"fmt"
-	"reflect"
+	//	"reflect"
 	"testing"
 )
 
 type Config struct {
-	Name   string      `c2s:"name"`
-	DynElm []DynConfig `c2s:"dynelement,dynamic=type"`
+	ConfigElmArr []ConfigElm `c2s:"config"`
+}
+
+type ConfigElm struct {
+	Name        string    `c2s:"name"`
+	DynElmArray DynConfig `c2s:"dynelement,dynamic=type"`
 }
 
 type DynConfig struct {
@@ -48,16 +52,19 @@ func TestYamlUnmarshal(t *testing.T) {
 	t.Parallel()
 	var datastruct = `
         config:
-          name: "myconfig"
-          dynelement:
-            - type: "myfloat"
+          - name: "myconfig1"
+            dynelement:
+              type: "myfloat"
               config:
                 keyfloat: "chiavefloat"
                 valuefloat: 23.2
-            - type: "myint"
+          - name: "myconfig2"
+            dynelement:
+              type: "myint"
               config:
                 keyint: "chiaveint"
                 valueint: 22
+
        `
 	var cfg = Config{}
 	err := UnmarshalYaml([]byte(datastruct), &cfg)
@@ -66,8 +73,8 @@ func TestYamlUnmarshal(t *testing.T) {
 	}
 
 	fmt.Printf("unmarshalled config: %#v \n", cfg)
-	fmt.Printf("subconf type: %s \n", reflect.TypeOf(cfg.DynElm[0].Config))
-	fmt.Printf("access float: %s \n", cfg.DynElm[0].Config.(MyFloatConfig).Key)
+	//	fmt.Printf("subconf type: %s \n", reflect.TypeOf(cfg.DynElm[0].Config))
+	//	fmt.Printf("access float: %s \n", cfg.DynElm[0].Config.(MyFloatConfig).Key)
 
 	//	if cfg.Name != "myconfig" {
 	//		t.Errorf("string does not match: %s", cfg.Name)
