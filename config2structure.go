@@ -93,16 +93,12 @@ func decode(name string, input interface{}, outVal reflect.Value) error {
 		err = decodeFloat(name, input, outVal)
 	case reflect.Struct:
 		err = decodeStruct(name, input, outVal)
-		//	case reflect.Map:
-		//		err = decodeMap(name, input, outVal)
 	case reflect.Ptr:
 		_, err = decodePtr(name, input, outVal)
 	case reflect.Slice:
 		err = decodeSlice(name, input, outVal)
 	case reflect.Array:
 		err = decodeArray(name, input, outVal)
-		//	case reflect.Func:
-		//		err = decodeFunc(name, input, outVal)
 	default:
 		// If we reached this point then we weren't able to decode it
 		return fmt.Errorf("%s: unsupported type: %s", name, outputKind)
@@ -443,116 +439,10 @@ func decodeStruct(name string, data interface{}, val reflect.Value) error {
 	case reflect.Map:
 		return decodeStructFromMap(name, dataVal, val)
 
-		//	case reflect.Struct:
-		//		// Not the most efficient way to do this but we can optimize later if
-		//		// we want to. To convert from struct to struct we go to map first
-		//		// as an intermediary.
-		//
-		//		// Make a new map to hold our result
-		//		mapType := reflect.TypeOf((map[string]interface{})(nil))
-		//		mval := reflect.MakeMap(mapType)
-		//
-		//		// Creating a pointer to a map so that other methods can completely
-		//		// overwrite the map if need be (looking at you decodeMapFromMap). The
-		//		// indirection allows the underlying map to be settable (CanSet() == true)
-		//		// where as reflect.MakeMap returns an unsettable map.
-		//		addrVal := reflect.New(mval.Type())
-		//
-		//		reflect.Indirect(addrVal).Set(mval)
-		//		if err := decodeMapFromStruct(name, dataVal, reflect.Indirect(addrVal), mval); err != nil {
-		//			return err
-		//		}
-		//
-		//		result := decodeStructFromMap(name, reflect.Indirect(addrVal), val)
-		//		return result
-
 	default:
 		return fmt.Errorf("'%s' expected a map, got '%s'", name, dataVal.Kind())
 	}
 }
-
-//func decodeMapFromStruct(name string, dataVal reflect.Value, val reflect.Value, valMap reflect.Value) error {
-//
-//	fmt.Println("decodeMapFromStruct")
-//
-//	typ := dataVal.Type()
-//	for i := 0; i < typ.NumField(); i++ {
-//		// Get the StructField first since this is a cheap operation. If the
-//		// field is unexported, then ignore it.
-//		f := typ.Field(i)
-//		if f.PkgPath != "" {
-//			continue
-//		}
-//
-//		// Next get the actual value of this field and verify it is assignable
-//		// to the map value.
-//		v := dataVal.Field(i)
-//		if !v.Type().AssignableTo(valMap.Type().Elem()) {
-//			return fmt.Errorf("cannot assign type '%s' to map value field of type '%s'", v.Type(), valMap.Type().Elem())
-//		}
-//
-//		tagValue := f.Tag.Get("c2s")
-//		keyName := f.Name
-//
-//		// Determine the name of the key in the map
-//		if index := strings.Index(tagValue, ","); index != -1 {
-//			if tagValue[:index] == "-" {
-//				continue
-//			}
-//			// If "omitempty" is specified in the tag, it ignores empty values.
-//			if strings.Index(tagValue[index+1:], "omitempty") != -1 && isEmptyValue(v) {
-//				continue
-//			}
-//
-//			keyName = tagValue[:index]
-//		} else if len(tagValue) > 0 {
-//			if tagValue == "-" {
-//				continue
-//			}
-//			keyName = tagValue
-//		}
-//
-//		switch v.Kind() {
-//		// this is an embedded struct, so handle it differently
-//		case reflect.Struct:
-//			x := reflect.New(v.Type())
-//			x.Elem().Set(v)
-//
-//			vType := valMap.Type()
-//			vKeyType := vType.Key()
-//			vElemType := vType.Elem()
-//			mType := reflect.MapOf(vKeyType, vElemType)
-//			vMap := reflect.MakeMap(mType)
-//
-//			// Creating a pointer to a map so that other methods can completely
-//			// overwrite the map if need be (looking at you decodeMapFromMap). The
-//			// indirection allows the underlying map to be settable (CanSet() == true)
-//			// where as reflect.MakeMap returns an unsettable map.
-//			addrVal := reflect.New(vMap.Type())
-//			reflect.Indirect(addrVal).Set(vMap)
-//
-//			err := decode(keyName, x.Interface(), reflect.Indirect(addrVal))
-//			if err != nil {
-//				return err
-//			}
-//
-//			// the underlying map may have been completely overwritten so pull
-//			// it indirectly out of the enclosing value.
-//			vMap = reflect.Indirect(addrVal)
-//
-//			valMap.SetMapIndex(reflect.ValueOf(keyName), vMap)
-//
-//		default:
-//			valMap.SetMapIndex(reflect.ValueOf(keyName), v)
-//		}
-//	}
-//
-//	if val.CanAddr() {
-//		val.Set(valMap)
-//	}
-//
-//	return nil
-//}
 
 func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 
@@ -618,6 +508,10 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 			selectValue := selectSlice[1]
 			rawMapSelectKey := reflect.ValueOf(selectValue)
 			rawMapKey := reflect.ValueOf(fieldName)
+			if dataVal.Kind() == reflect.Slice {
+				fmt.Println("rawmapval is slice")
+				return fmt.Errorf("rawmap is slice")
+			}
 			rawMapVal := dataVal.MapIndex(rawMapKey)
 			rawMapSelectVal := rawMapVal.Elem().MapIndex(rawMapSelectKey)
 			fmt.Printf("set select: %s \n", rawMapSelectVal.Interface().(string))
@@ -657,128 +551,12 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		}
 	}
 
-	//	// If we have a "remain"-tagged field and we have unused keys then
-	//	// we put the unused keys directly into the remain field.
-	//	if remainField != nil && len(dataValKeysUnused) > 0 {
-	//		// Build a map of only the unused values
-	//		remain := map[interface{}]interface{}{}
-	//		for key := range dataValKeysUnused {
-	//			remain[key] = dataVal.MapIndex(reflect.ValueOf(key)).Interface()
-	//		}
-	//
-	//		// Decode it as-if we were just decoding this map onto our map.
-	//		if err := decodeMap(name, remain, remainField.val); err != nil {
-	//			errors = appendErrors(errors, err)
-	//		}
-	//
-	//		// Set the map to nil so we have none so that the next check will
-	//		// not error (ErrorUnused)
-	//		dataValKeysUnused = nil
-	//	}
-	//
-	//	if len(dataValKeysUnused) > 0 {
-	//		keys := make([]string, 0, len(dataValKeysUnused))
-	//		for rawKey := range dataValKeysUnused {
-	//			keys = append(keys, rawKey.(string))
-	//		}
-	//		sort.Strings(keys)
-	//
-	//		err := fmt.Errorf("'%s' has invalid keys: %s", name, strings.Join(keys, ", "))
-	//		errors = appendErrors(errors, err)
-	//	}
-
 	if len(errors) > 0 {
 		return &Error{errors}
 	}
 
 	return nil
 }
-
-//func decodeMapFromMap(name string, dataVal reflect.Value, val reflect.Value, valMap reflect.Value) error {
-//	valType := val.Type()
-//	valKeyType := valType.Key()
-//	valElemType := valType.Elem()
-//
-//	// Accumulate errors
-//	errors := make([]string, 0)
-//
-//	// If the input data is empty, then we just match what the input data is.
-//	if dataVal.Len() == 0 {
-//		if dataVal.IsNil() {
-//			if !val.IsNil() {
-//				val.Set(dataVal)
-//			}
-//		} else {
-//			// Set to empty allocated value
-//			val.Set(valMap)
-//		}
-//
-//		return nil
-//	}
-//
-//	for _, k := range dataVal.MapKeys() {
-//		fieldName := name + "[" + k.String() + "]"
-//
-//		// First decode the key into the proper type
-//		currentKey := reflect.Indirect(reflect.New(valKeyType))
-//		if err := decode(fieldName, k.Interface(), currentKey); err != nil {
-//			errors = appendErrors(errors, err)
-//			continue
-//		}
-//
-//		// Next decode the data into the proper type
-//		v := dataVal.MapIndex(k).Interface()
-//		currentVal := reflect.Indirect(reflect.New(valElemType))
-//		if err := decode(fieldName, v, currentVal); err != nil {
-//			errors = appendErrors(errors, err)
-//			continue
-//		}
-//
-//		valMap.SetMapIndex(currentKey, currentVal)
-//	}
-//
-//	// Set the built up map to the value
-//	val.Set(valMap)
-//
-//	// If we had errors, return those
-//	if len(errors) > 0 {
-//		return &Error{errors}
-//	}
-//
-//	return nil
-//}
-//
-//func decodeMap(name string, data interface{}, val reflect.Value) error {
-//	valType := val.Type()
-//	valKeyType := valType.Key()
-//	valElemType := valType.Elem()
-//
-//	// By default we overwrite keys in the current map
-//	valMap := val
-//
-//	// If the map is nil or we're purposely zeroing fields, make a new map
-//	if valMap.IsNil() {
-//		// Make a new map to hold our result
-//		mapType := reflect.MapOf(valKeyType, valElemType)
-//		valMap = reflect.MakeMap(mapType)
-//	}
-//
-//	// Check input type and based on the input type jump to the proper func
-//	dataVal := reflect.Indirect(reflect.ValueOf(data))
-//	switch dataVal.Kind() {
-//	case reflect.Map:
-//		return decodeMapFromMap(name, dataVal, val, valMap)
-//
-//	case reflect.Struct:
-//		return decodeMapFromStruct(name, dataVal, val, valMap)
-//
-//	case reflect.Array, reflect.Slice:
-//		fallthrough
-//
-//	default:
-//		return fmt.Errorf("'%s' expected a map, got '%s'", name, dataVal.Kind())
-//	}
-//}
 
 func isEmptyValue(v reflect.Value) bool {
 	switch getKind(v) {

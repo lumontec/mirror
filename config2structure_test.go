@@ -12,8 +12,8 @@ import (
 )
 
 type Config struct {
-	Name   string    `c2s:"name"`
-	DynElm DynConfig `c2s:"dynelement,dynamic=type"`
+	Name   string      `c2s:"name"`
+	DynElm []DynConfig `c2s:"dynelement,dynamic=type"`
 }
 
 type DynConfig struct {
@@ -44,19 +44,54 @@ type MyIntConfig struct {
 	Value int    `c2s:"valueint"`
 }
 
-//func TestYamlUnmarshal(t *testing.T) {
+func TestYamlUnmarshal(t *testing.T) {
+	t.Parallel()
+	var datastruct = `
+        config:
+          name: "myconfig"
+          dynelement:
+            - type: "myfloat"
+              config:
+                keyfloat: "chiavefloat"
+                valuefloat: 23.2
+            - type: "myint"
+              config:
+                keyint: "chiaveint"
+                valueint: 22
+       `
+	var cfg = Config{}
+	err := UnmarshalYaml([]byte(datastruct), &cfg)
+	if err != nil {
+		t.Fatalf("got an err: %s", err)
+	}
+
+	fmt.Printf("unmarshalled config: %#v \n", cfg)
+	fmt.Printf("subconf type: %s \n", reflect.TypeOf(cfg.DynElm[0].Config))
+	fmt.Printf("access float: %s \n", cfg.DynElm[0].Config.(MyFloatConfig).Key)
+
+	//	if cfg.Name != "myconfig" {
+	//		t.Errorf("string does not match: %s", cfg.Name)
+	//	}
+}
+
+//func TestJsonlUnmarshal(t *testing.T) {
 //	t.Parallel()
 //	var datastruct = `
-//        config:
-//          name: "myconfig"
-//          dynelement:
-//            type: "myfloat"
-//            config:
-//              keyfloat: "chiave"
-//              valuefloat: 23.2
+//        {
+//          "config": {
+//            "name": "myconfig",
+//            "dynelement": {
+//              "type": "myfloat",
+//              "config": {
+//                "keyfloat": "chiave",
+//                "valuefloat": 23.2
+//              }
+//            }
+//          }
+//        }
 //        `
 //	var cfg = Config{}
-//	err := UnmarshalYaml([]byte(datastruct), &cfg)
+//	err := UnmarshalJson([]byte(datastruct), &cfg)
 //	if err != nil {
 //		t.Fatalf("got an err: %s", err)
 //	}
@@ -69,34 +104,3 @@ type MyIntConfig struct {
 //	//		t.Errorf("string does not match: %s", cfg.Name)
 //	//	}
 //}
-
-func TestJsonlUnmarshal(t *testing.T) {
-	t.Parallel()
-	var datastruct = `
-        {
-          "config": {
-            "name": "myconfig",
-            "dynelement": {
-              "type": "myfloat",
-              "config": {
-                "keyfloat": "chiave",
-                "valuefloat": 23.2
-              }
-            }
-          }
-        }        
-        `
-	var cfg = Config{}
-	err := UnmarshalJson([]byte(datastruct), &cfg)
-	if err != nil {
-		t.Fatalf("got an err: %s", err)
-	}
-
-	fmt.Printf("unmarshalled config: %#v \n", cfg)
-	fmt.Printf("subconf type: %s \n", reflect.TypeOf(cfg.DynElm.Config))
-	fmt.Printf("access float: %s \n", cfg.DynElm.Config.(MyFloatConfig).Key)
-
-	//	if cfg.Name != "myconfig" {
-	//		t.Errorf("string does not match: %s", cfg.Name)
-	//	}
-}
