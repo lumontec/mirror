@@ -1,6 +1,7 @@
 package config2structure
 
 import (
+	"encoding/json"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"reflect"
@@ -21,6 +22,24 @@ func UnmarshalYaml(data []byte, config interface{}) error {
 	err := yaml.Unmarshal([]byte(data), rawmap)
 	if err != nil {
 		return fmt.Errorf("unmarshal yaml: %s", err)
+	}
+
+	err = decodeMapLevels(rawmap["config"], config)
+	if err != nil {
+		return fmt.Errorf("decode map: %s", err)
+	}
+
+	return nil
+}
+
+// Unmarshal full yaml into the configuration structure
+func UnmarshalJson(data []byte, config interface{}) error {
+
+	rawmap := make(map[string]interface{})
+
+	err := json.Unmarshal([]byte(data), &rawmap)
+	if err != nil {
+		return fmt.Errorf("unmarshal json: %s", err)
 	}
 
 	err = decodeMapLevels(rawmap["config"], config)
