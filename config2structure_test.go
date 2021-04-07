@@ -7,12 +7,13 @@ import (
 	//	"sort"
 	//	"strings"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
 type Config struct {
 	Name   string    `c2s:"name"`
-	DynElm DynConfig `c2s:"dynelement,dynamic"`
+	DynElm DynConfig `c2s:"dynelement,dynamic=type"`
 }
 
 type DynConfig struct {
@@ -20,15 +21,15 @@ type DynConfig struct {
 	Config interface{} `c2s:"config"`
 }
 
-func (dc DynConfig) SetDynamicType() {
-	switch dc.Type {
+func (dc *DynConfig) SetDynamicType(Type string) {
+	switch Type {
 	case "myfloat":
 		{
-			dc.Config = MyFloatConfig{}
+			dc.Config = 1.1
 		}
 	case "myint":
 		{
-			dc.Config = MyIntConfig{}
+			dc.Config = 1
 		}
 	}
 }
@@ -39,9 +40,23 @@ type MyFloatConfig struct {
 }
 
 type MyIntConfig struct {
-	Key   string `c2s:"keyin"`
+	Key   string `c2s:"keyint"`
 	Value int    `c2s:"valueint"`
 }
+
+//func (dc *DynConfig) SetDynamicType() interface{} {
+//	switch dc.Type {
+//	case "myfloat":
+//		{
+//			dc.Config = 1.0
+//		}
+//	case "myint":
+//		{
+//			dc.Config = 1
+//		}
+//	}
+//	return nil
+//}
 
 //func TestStringDecode(t *testing.T) {
 //	t.Parallel()
@@ -67,10 +82,10 @@ func TestStructDecode(t *testing.T) {
         config:
           name: "myconfig"
           dynelement:
-            type: "myint"
-            config:
-              keyint: "chiave"
-              valueint: 23
+            type: "myfloat"
+            config: 1
+#              keyint: "chiave"
+#              valueint: 23
         `
 	var cfg = Config{}
 	err := UnmarshalYaml([]byte(datastruct), &cfg)
@@ -79,6 +94,8 @@ func TestStructDecode(t *testing.T) {
 	}
 
 	fmt.Printf("unmarshalled config: %#v \n", cfg)
+
+	fmt.Printf("subconf type: %s \n", reflect.TypeOf(cfg.DynElm.Config))
 
 	//	if cfg.Name != "myconfig" {
 	//		t.Errorf("string does not match: %s", cfg.Name)

@@ -30,11 +30,11 @@ config:
 
 We define an abstract schema, implementing the c2s.DynamicStruct interface for the ***dynelement*** by defining the function ***SetDynamicType()***
 
-**schema.go***
+**schema.go**
 ```go
 type Config struct {
   Name string `c2s: "name"`
-  DynElm DynConfig `c2s: "dynelement,dynamic"`  // we add the dynamic tag, required by c2s library
+  DynElm DynConfig `c2s: "dynelement,dynamic=type"`  // we add the dynamic selector, required by c2s library, sets selector key
 }
 
 type DynConfig struct {
@@ -42,8 +42,8 @@ type DynConfig struct {
   Config interface{}
 }
 
-func (dc *DynConfig) SetDynamicType () {
-  switch dc.Type {
+func (dc *DynConfig) SetDynamicType (Type string) {
+  switch Type {
   case "myfloat": 
     {
       dc.Config = MyFloatConfig

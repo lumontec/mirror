@@ -10,7 +10,7 @@ import (
 )
 
 type DynamicStruct interface {
-	SetDynamicType()
+	SetDynamicType(Type string)
 }
 
 // Unmarshal full yaml into the configuration structure
@@ -76,8 +76,8 @@ func decode(name string, input interface{}, outVal reflect.Value) error {
 		err = decodeStruct(name, input, outVal)
 		//	case reflect.Map:
 		//		err = decodeMap(name, input, outVal)
-		//	case reflect.Ptr:
-		//		err = decodePtr(name, input, outVal)
+	case reflect.Ptr:
+		_, err = decodePtr(name, input, outVal)
 	case reflect.Slice:
 		err = decodeSlice(name, input, outVal)
 	case reflect.Array:
@@ -92,10 +92,64 @@ func decode(name string, input interface{}, outVal reflect.Value) error {
 	return err
 }
 
+func decodePtr(name string, data interface{}, val reflect.Value) (bool, error) {
+	// If the input data is nil, then we want to just set the output
+	// pointer to be nil as well.
+	isNil := data == nil
+	if !isNil {
+		switch v := reflect.Indirect(reflect.ValueOf(data)); v.Kind() {
+		case reflect.Chan,
+			reflect.Func,
+			reflect.Interface,
+			reflect.Map,
+			reflect.Ptr,
+			reflect.Slice:
+			isNil = v.IsNil()
+		}
+	}
+	if isNil {
+		if !val.IsNil() && val.CanSet() {
+			nilValue := reflect.New(val.Type()).Elem()
+			val.Set(nilValue)
+		}
+
+		return true, nil
+	}
+
+	// Create an element of the concrete (non pointer) type and decode
+	// into that. Then set the value of the pointer to this type.
+	valType := val.Type()
+	valElemType := valType.Elem()
+	if val.CanSet() {
+		realVal := val
+		if realVal.IsNil() {
+			realVal = reflect.New(valElemType)
+		}
+
+		if err := decode(name, data, reflect.Indirect(realVal)); err != nil {
+			return false, err
+		}
+
+		val.Set(realVal)
+	} else {
+		if err := decode(name, data, reflect.Indirect(val)); err != nil {
+			return false, err
+		}
+	}
+	return false, nil
+}
+
 // This decodes a basic type (bool, int, string, etc.) and sets the
 // value to "data" of that type.
 func decodeBasic(name string, data interface{}, val reflect.Value) error {
+
+	fmt.Printf("decodeBasic: data: %#v \n", data)
+	fmt.Printf("decodeBasic: typeofdata: %s \n", reflect.TypeOf(data))
+
 	if val.IsValid() && val.Elem().IsValid() {
+
+		fmt.Println("decodeBasic: value is valid")
+
 		elem := val.Elem()
 
 		// If we can't address this element, then its not writable. Instead,
@@ -146,7 +200,7 @@ func decodeBasic(name string, data interface{}, val reflect.Value) error {
 			name, val.Type(), dataValType)
 	}
 
-	val.Set(dataVal)
+	//	val.Set(dataVal)
 	return nil
 }
 
@@ -541,34 +595,23 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 
 		// cast to type if tagDynamic is present
 		if tagDynamic != "" {
-			fieldValue.Interface().(DynamicStruct).SetDynamicType()
+			selectSlice := strings.Split(tagDynamic, "=")
+			selectValue := selectSlice[1]
+			rawMapSelectKey := reflect.ValueOf(selectValue)
+			rawMapKey := reflect.ValueOf(fieldName)
+			rawMapVal := dataVal.MapIndex(rawMapKey)
+			rawMapSelectVal := rawMapVal.Elem().MapIndex(rawMapSelectKey)
+			fmt.Printf("set select: %s \n", rawMapSelectVal.Interface().(string))
+			fieldValue.Addr().Interface().(DynamicStruct).SetDynamicType(rawMapSelectVal.Interface().(string))
+			fmt.Printf("set field: %#v \n", fieldValue)
 		}
 
 		rawMapKey := reflect.ValueOf(fieldName)
 		rawMapVal := dataVal.MapIndex(rawMapKey)
-		//		if !rawMapVal.IsValid() {
-		//			// Do a slower search by iterating over each key and
-		//			// doing case-insensitive search.
-		//			for dataValKey := range dataValKeys {
-		//				mK, ok := dataValKey.Interface().(string)
-		//				if !ok {
-		//					// Not a string key
-		//					return fmt.Errorf("not a string key")
-		//				}
-		//
-		//				if strings.EqualFold(mK, fieldName) {
-		//					rawMapKey = dataValKey
-		//					rawMapVal = dataVal.MapIndex(dataValKey)
-		//					break
-		//				}
-		//			}
-		//
-		//			if !rawMapVal.IsValid() {
-		//				// There was no matching key in the map for the value in
-		//				// the struct. Just ignore.
-		//				return fmt.Errorf("not valid")
-		//			}
-		//		}
+
+		if !rawMapVal.IsValid() {
+			panic("raw map is not valid")
+		}
 
 		if !fieldValue.IsValid() {
 			// This should never happen
