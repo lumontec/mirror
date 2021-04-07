@@ -25,11 +25,11 @@ func (dc *DynConfig) SetDynamicType(Type string) {
 	switch Type {
 	case "myfloat":
 		{
-			dc.Config = 1.1
+			dc.Config = MyFloatConfig{}
 		}
 	case "myint":
 		{
-			dc.Config = 1
+			dc.Config = MyIntConfig{}
 		}
 	}
 }
@@ -44,38 +44,6 @@ type MyIntConfig struct {
 	Value int    `c2s:"valueint"`
 }
 
-//func (dc *DynConfig) SetDynamicType() interface{} {
-//	switch dc.Type {
-//	case "myfloat":
-//		{
-//			dc.Config = 1.0
-//		}
-//	case "myint":
-//		{
-//			dc.Config = 1
-//		}
-//	}
-//	return nil
-//}
-
-//func TestStringDecode(t *testing.T) {
-//	t.Parallel()
-//	var datastring = `
-//        key: "ciao"
-//        `
-//	cfg := ""
-//	err := UnmarshalYaml([]byte(datastring), &cfg)
-//	if err != nil {
-//		t.Fatalf("got an err: %s", err)
-//	}
-//
-//	fmt.Printf("unmarshalled config: %#v \n", cfg)
-//
-//	if cfg != "ciao" {
-//		t.Errorf("string does not match: %s", cfg)
-//	}
-//}
-
 func TestStructDecode(t *testing.T) {
 	t.Parallel()
 	var datastruct = `
@@ -83,9 +51,9 @@ func TestStructDecode(t *testing.T) {
           name: "myconfig"
           dynelement:
             type: "myfloat"
-            config: 1
-#              keyint: "chiave"
-#              valueint: 23
+            config:
+              keyfloat: "chiave"
+              valuefloat: 23.2
         `
 	var cfg = Config{}
 	err := UnmarshalYaml([]byte(datastruct), &cfg)
@@ -94,8 +62,8 @@ func TestStructDecode(t *testing.T) {
 	}
 
 	fmt.Printf("unmarshalled config: %#v \n", cfg)
-
 	fmt.Printf("subconf type: %s \n", reflect.TypeOf(cfg.DynElm.Config))
+	fmt.Printf("access float: %s \n", cfg.DynElm.Config.(MyFloatConfig).Key)
 
 	//	if cfg.Name != "myconfig" {
 	//		t.Errorf("string does not match: %s", cfg.Name)
