@@ -16,8 +16,8 @@ type Config struct {
 }
 
 type ConfigElm struct {
-	Name        string       `c2s:"name"`
-	DynElmArray [1]DynConfig `c2s:"dynelement,dynamic=type"`
+	Name        string      `c2s:"name"`
+	DynElmArray []DynConfig `c2s:"dynelement,dynamic=type"`
 }
 
 type DynConfig struct {

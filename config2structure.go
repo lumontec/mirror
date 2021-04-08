@@ -513,11 +513,26 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 			rawMapKey := reflect.ValueOf(fieldName)
 			rawMapVal := dataVal.MapIndex(rawMapKey)
 			if rawMapVal.Elem().Kind() == reflect.Slice {
+				// Get slice type
+				valType := fieldValue.Type()
+				valElemType := valType.Elem()
+				sliceType := reflect.SliceOf(valElemType)
+				// Create slice with len
+				valSlice := fieldValue
+				if valSlice.IsNil() {
+					// Make a new slice to hold our result, same size as the original data.
+					valSlice = reflect.MakeSlice(sliceType, rawMapVal.Elem().Len(), rawMapVal.Elem().Len())
+				}
+
 				// Cast dynamic type for each element of slice
 				for i := 0; i < rawMapVal.Elem().Len(); i++ {
 					rawMapSelectVal := rawMapVal.Elem().Index(i).Elem().MapIndex(rawMapSelectKey)
-					fieldValue.Addr().Elem().Index(i).Addr().Interface().(DynamicStruct).SetDynamicType(rawMapSelectVal.Interface().(string))
+					valSlice.Index(i).Addr().Interface().(DynamicStruct).SetDynamicType(rawMapSelectVal.Interface().(string))
 				}
+
+				// Finally, set the value to the slice we built up
+				fieldValue.Set(valSlice)
+
 			} else {
 				rawMapSelectVal := rawMapVal.Elem().MapIndex(rawMapSelectKey)
 				fmt.Printf("set select: %s \n", rawMapSelectVal.Interface().(string))
