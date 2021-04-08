@@ -13,7 +13,7 @@ config:
   dynelement:
     type: "myfloat"
     config:
-      key: "keyname" 
+      keyfloat: "keyname" 
       valuefloat: 1.3 
 ```
 
@@ -24,11 +24,11 @@ config:
   dynelement:
     type: "myint"
     config:
-      key: "keyname" 
+      keyint: "keyname" 
       valueint: 1 
 ```
 
-We define an abstract schema, implementing the c2s.DynamicStruct interface for the ***dynelement*** by defining the function ***SetDynamicType(string)***
+We define an abstract schema, implementing the **c2s.DynamicStruct** interface for the ***dynelement*** by defining the function ***SetDynamicType(string)*** to return our specialized type depending on the string parameter value
 
 **schema.go**
 ```go
@@ -46,22 +46,22 @@ func (dc *DynConfig) SetDynamicType (Type string) {
   switch Type {
   case "myfloat": 
     {
-      dc.Config = MyFloatConfig
+      dc.Config = MyFloatConfig{}
     }
   case "myint": 
     {
-      dc.Config = MyIntConfig
+      dc.Config = MyIntConfig{}
     }
   }
 }
 
 type MyFloatConfig struct {
-  Key string          `c2s:"key"`
+  Key string          `c2s:"keyfloat"`
   ValueFloat float64  `c2s:"valuefloat"`
 }
 
 type MyIntConfig struct {
-  Key string    `c2s:"key"`
+  Key string    `c2s:"keyint"`
   ValueInt int  `c2s:"valueint"`
 }
 ```
@@ -80,8 +80,8 @@ config:
   dynelement:
     type: "myint"
     config:
-      key: "keyname" 
-      value: 1 
+      keyint: "keyname" 
+      valueint: 1 
 `
 config := Config{}
 err := UnmarshalYaml([]byte(data), &config)
