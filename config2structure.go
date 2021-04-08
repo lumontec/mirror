@@ -158,13 +158,7 @@ func decodePtr(name string, data interface{}, val reflect.Value) (bool, error) {
 // value to "data" of that type.
 func decodeBasic(name string, data interface{}, val reflect.Value) error {
 
-	fmt.Printf("decodeBasic: data: %#v \n", data)
-	fmt.Printf("decodeBasic: typeofdata: %s \n", reflect.TypeOf(data))
-
 	if val.IsValid() && val.Elem().IsValid() {
-
-		fmt.Println("decodeBasic: value is valid")
-
 		elem := val.Elem()
 
 		// If we can't address this element, then its not writable. Instead,
@@ -299,8 +293,6 @@ func decodeFloat(name string, data interface{}, val reflect.Value) error {
 
 func decodeSlice(name string, data interface{}, val reflect.Value) error {
 
-	fmt.Printf("decodeSlice\n")
-
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
 	dataValKind := dataVal.Kind()
 	valType := val.Type()
@@ -403,8 +395,6 @@ func decodeArray(name string, data interface{}, val reflect.Value) error {
 
 func decodeString(name string, data interface{}, val reflect.Value) error {
 
-	fmt.Println("decodeString")
-
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
 	dataKind := getKind(dataVal)
 
@@ -425,8 +415,6 @@ func decodeString(name string, data interface{}, val reflect.Value) error {
 }
 
 func decodeStruct(name string, data interface{}, val reflect.Value) error {
-
-	fmt.Println("decoding struct")
 
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
 
@@ -449,8 +437,6 @@ func decodeStruct(name string, data interface{}, val reflect.Value) error {
 
 func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 
-	fmt.Println("decodeStructFromMap")
-
 	dataValType := dataVal.Type()
 	if kind := dataValType.Key().Kind(); kind != reflect.String && kind != reflect.Interface {
 		return fmt.Errorf(
@@ -461,7 +447,6 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 	dataValKeys := make(map[reflect.Value]struct{})
 	dataValKeysUnused := make(map[interface{}]struct{})
 	for _, dataValKey := range dataVal.MapKeys() {
-		fmt.Println("ranged key:", dataValKey)
 		dataValKeys[dataValKey] = struct{}{}
 		dataValKeysUnused[dataValKey.Interface()] = struct{}{}
 	}
@@ -490,7 +475,6 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		fieldName := field.Name
 
 		tags := field.Tag.Get("c2s")
-		fmt.Println("tags:", tags)
 		tagSlice := strings.Split(tags, ",")
 		tagValue := tagSlice[0]
 		tagDynamic := ""
@@ -535,9 +519,7 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 
 			} else {
 				rawMapSelectVal := rawMapVal.Elem().MapIndex(rawMapSelectKey)
-				fmt.Printf("set select: %s \n", rawMapSelectVal.Interface().(string))
 				fieldValue.Addr().Interface().(DynamicStruct).SetDynamicType(rawMapSelectVal.Interface().(string))
-				fmt.Printf("set field: %#v \n", fieldValue)
 			}
 		}
 
