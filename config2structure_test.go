@@ -29,6 +29,10 @@ func (dc *DynConfig) SetDynamicType(Type string) {
 		{
 			dc.Config = MyIntConfig{}
 		}
+	case "null":
+		{
+			dc.Config = nil
+		}
 	}
 }
 
@@ -52,6 +56,8 @@ func TestYamlUnmarshal(t *testing.T) {
               config:
                 keyfloat: "chiavefloat"
                 valuefloat: 23.2
+            - type: "null"
+              config: '' 
        `
 	var cfg = Config{}
 	err := UnmarshalYaml([]byte(datastruct), &cfg)
@@ -81,11 +87,14 @@ func TestJsonlUnmarshal(t *testing.T) {
                   "keyfloat": "chiavefloat",
                   "valuefloat": 23.2
                 }
+              },
+              {
+                "type": "null",
+                "config": ""
               }
             ]
           }
-        }        
-        `
+        }        `
 	var cfg = Config{}
 	err := UnmarshalJson([]byte(datastruct), &cfg)
 	if err != nil {
