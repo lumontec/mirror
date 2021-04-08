@@ -298,6 +298,9 @@ func decodeFloat(name string, data interface{}, val reflect.Value) error {
 }
 
 func decodeSlice(name string, data interface{}, val reflect.Value) error {
+
+	fmt.Printf("decodeSlice\n")
+
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
 	dataValKind := dataVal.Kind()
 	valType := val.Type()
@@ -508,15 +511,19 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 			selectValue := selectSlice[1]
 			rawMapSelectKey := reflect.ValueOf(selectValue)
 			rawMapKey := reflect.ValueOf(fieldName)
-			//			if dataVal.Kind() == reflect.Slice {
-			//				fmt.Println("rawmapval is slice")
-			//				return fmt.Errorf("rawmap is slice")
-			//			}
 			rawMapVal := dataVal.MapIndex(rawMapKey)
-			rawMapSelectVal := rawMapVal.Elem().MapIndex(rawMapSelectKey)
-			fmt.Printf("set select: %s \n", rawMapSelectVal.Interface().(string))
-			fieldValue.Addr().Interface().(DynamicStruct).SetDynamicType(rawMapSelectVal.Interface().(string))
-			fmt.Printf("set field: %#v \n", fieldValue)
+			if rawMapVal.Elem().Kind() == reflect.Slice {
+				// Cast dynamic type for each element of slice
+				for i := 0; i < rawMapVal.Elem().Len(); i++ {
+					rawMapSelectVal := rawMapVal.Elem().Index(i).Elem().MapIndex(rawMapSelectKey)
+					fieldValue.Addr().Elem().Index(i).Addr().Interface().(DynamicStruct).SetDynamicType(rawMapSelectVal.Interface().(string))
+				}
+			} else {
+				rawMapSelectVal := rawMapVal.Elem().MapIndex(rawMapSelectKey)
+				fmt.Printf("set select: %s \n", rawMapSelectVal.Interface().(string))
+				fieldValue.Addr().Interface().(DynamicStruct).SetDynamicType(rawMapSelectVal.Interface().(string))
+				fmt.Printf("set field: %#v \n", fieldValue)
+			}
 		}
 
 		rawMapKey := reflect.ValueOf(fieldName)

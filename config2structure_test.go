@@ -12,12 +12,12 @@ import (
 )
 
 type Config struct {
-	ConfigElmArr []ConfigElm `c2s:"config"`
+	ConfigElmArr ConfigElm `c2s:"config"`
 }
 
 type ConfigElm struct {
-	Name        string    `c2s:"name"`
-	DynElmArray DynConfig `c2s:"dynelement,dynamic=type"`
+	Name        string       `c2s:"name"`
+	DynElmArray [1]DynConfig `c2s:"dynelement,dynamic=type"`
 }
 
 type DynConfig struct {
@@ -52,19 +52,12 @@ func TestYamlUnmarshal(t *testing.T) {
 	t.Parallel()
 	var datastruct = `
         config:
-          - name: "myconfig1"
-            dynelement:
-              type: "myfloat"
+          name: "myconfig1"
+          dynelement:
+            - type: "myfloat"
               config:
                 keyfloat: "chiavefloat"
                 valuefloat: 23.2
-          - name: "myconfig2"
-            dynelement:
-              type: "myint"
-              config:
-                keyint: "chiaveint"
-                valueint: 22
-
        `
 	var cfg = Config{}
 	err := UnmarshalYaml([]byte(datastruct), &cfg)
