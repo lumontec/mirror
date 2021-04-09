@@ -1,6 +1,7 @@
 package config2structure
 
 import (
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 )
@@ -10,25 +11,62 @@ type submap map[string]interface{} // global convenience type
 func TestDecodeBool(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
+	tests_ok := []struct {
 		name string
-		data map[string]interface{}
-		val  bool
+		data interface{}
+		want bool
+		err  bool
 	}{
-		{"bool 1", submap{"bool": true}, true},
-		{"bool 2", submap{"bool": false}, false},
-		{"bool 3", submap{"bool": true}, false},
-		{"bool 4", submap{"bool": false}, true},
+		{"bool 1", true, true, false},
+		{"bool 2", false, false, false},
+		{"bool 3", 1, false, true},
 	}
-	for _, tt := range tests {
+	for _, tt := range tests_ok {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			decodeBool(tt.name, tt.data, reflect.ValueOf(tt.val))
-			t.Log(tt.name)
+			var val bool
+			err := decodeBool(tt.name, tt.data, reflect.ValueOf(&val).Elem())
+			if tt.err {
+				assert.Error(t, err)
+			} else {
+
+				assert.Equal(t, tt.want, val)
+			}
+			// t.Log(tt.name)
 		})
 	}
 }
+
+//func TestDecodeInt(t *testing.T) {
+//	t.Parallel()
+//
+//	tests_ok := []struct {
+//		name string
+//		data interface{}
+//		want bool
+//		err  bool
+//	}{
+//		{"bool 1", true, true, false},
+//		{"bool 2", false, false, false},
+//		{"bool 3", 1, false, true},
+//	}
+//	for _, tt := range tests_ok {
+//		tt := tt
+//		t.Run(tt.name, func(t *testing.T) {
+//			t.Parallel()
+//			var val bool
+//			err := decodeBool(tt.name, tt.data, reflect.ValueOf(&val).Elem())
+//			if tt.err {
+//				assert.Error(t, err)
+//			} else {
+//
+//				assert.Equal(t, tt.want, val)
+//			}
+//			// t.Log(tt.name)
+//		})
+//	}
+//}
 
 //import (
 //	"fmt"

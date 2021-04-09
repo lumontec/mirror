@@ -217,15 +217,13 @@ func decodeBool(name string, data interface{}, val reflect.Value) error {
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
 	dataKind := getKind(dataVal)
 
-	switch {
-	case dataKind == reflect.Bool:
-		val.SetBool(dataVal.Bool())
-	default:
+	if dataKind != reflect.Bool {
 		return fmt.Errorf(
 			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
 			name, val.Type(), dataVal.Type(), data)
 	}
 
+	val.SetBool(dataVal.Bool())
 	return nil
 }
 
