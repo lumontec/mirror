@@ -90,6 +90,8 @@ func decode(name string, input interface{}, outVal reflect.Value) error {
 	case reflect.Uint:
 		err = decodeUint(name, input, outVal)
 	case reflect.Float32:
+		fallthrough
+	case reflect.Float64:
 		err = decodeFloat(name, input, outVal)
 	case reflect.Struct:
 		err = decodeStruct(name, input, outVal)
@@ -231,19 +233,13 @@ func decodeInt(name string, data interface{}, val reflect.Value) error {
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
 	dataKind := getKind(dataVal)
 
-	switch {
-	case dataKind == reflect.Int:
-		val.SetInt(dataVal.Int())
-	case dataKind == reflect.Uint:
-		val.SetInt(int64(dataVal.Uint()))
-	case dataKind == reflect.Float32:
-		val.SetInt(int64(dataVal.Float()))
-	default:
+	if dataKind != reflect.Int {
 		return fmt.Errorf(
 			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
 			name, val.Type(), dataVal.Type(), data)
 	}
 
+	val.SetInt(dataVal.Int())
 	return nil
 }
 
@@ -251,21 +247,13 @@ func decodeUint(name string, data interface{}, val reflect.Value) error {
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
 	dataKind := getKind(dataVal)
 
-	switch {
-	case dataKind == reflect.Int:
-		i := dataVal.Int()
-		val.SetUint(uint64(i))
-	case dataKind == reflect.Uint:
-		val.SetUint(dataVal.Uint())
-	case dataKind == reflect.Float32:
-		f := dataVal.Float()
-		val.SetUint(uint64(f))
-	default:
+	if dataKind != reflect.Uint {
 		return fmt.Errorf(
 			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
 			name, val.Type(), dataVal.Type(), data)
 	}
 
+	val.SetUint(dataVal.Uint())
 	return nil
 }
 
@@ -273,19 +261,13 @@ func decodeFloat(name string, data interface{}, val reflect.Value) error {
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
 	dataKind := getKind(dataVal)
 
-	switch {
-	case dataKind == reflect.Int:
-		val.SetFloat(float64(dataVal.Int()))
-	case dataKind == reflect.Uint:
-		val.SetFloat(float64(dataVal.Uint()))
-	case dataKind == reflect.Float32:
-		val.SetFloat(dataVal.Float())
-	default:
+	if dataKind != reflect.Float64 {
 		return fmt.Errorf(
 			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
 			name, val.Type(), dataVal.Type(), data)
 	}
 
+	val.SetFloat(dataVal.Float())
 	return nil
 }
 
@@ -587,7 +569,7 @@ func getKind(val reflect.Value) reflect.Kind {
 	case kind >= reflect.Uint && kind <= reflect.Uint64:
 		return reflect.Uint
 	case kind >= reflect.Float32 && kind <= reflect.Float64:
-		return reflect.Float32
+		return reflect.Float64
 	default:
 		return kind
 	}

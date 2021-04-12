@@ -6,10 +6,19 @@ import (
 	"testing"
 )
 
-type submap map[string]interface{} // global convenience type
+// global convenience types and functions
+
+type submap map[string]interface{}
 
 func TestDecodeBool(t *testing.T) {
 	t.Parallel()
+
+	type Test struct {
+		name string
+		data interface{}
+		want bool
+		err  bool
+	}
 
 	tests_ok := []struct {
 		name string
@@ -25,48 +34,121 @@ func TestDecodeBool(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			var val bool
-			err := decodeBool(tt.name, tt.data, reflect.ValueOf(&val).Elem())
+
+			var value bool
+			val := reflect.ValueOf(&value).Elem()
+			err := decodeBool(tt.name, tt.data, val)
+
 			if tt.err {
 				assert.Error(t, err)
 			} else {
 
-				assert.Equal(t, tt.want, val)
+				assert.Equal(t, tt.want, value)
 			}
-			// t.Log(tt.name)
 		})
 	}
 }
 
-//func TestDecodeInt(t *testing.T) {
-//	t.Parallel()
-//
-//	tests_ok := []struct {
-//		name string
-//		data interface{}
-//		want bool
-//		err  bool
-//	}{
-//		{"bool 1", true, true, false},
-//		{"bool 2", false, false, false},
-//		{"bool 3", 1, false, true},
-//	}
-//	for _, tt := range tests_ok {
-//		tt := tt
-//		t.Run(tt.name, func(t *testing.T) {
-//			t.Parallel()
-//			var val bool
-//			err := decodeBool(tt.name, tt.data, reflect.ValueOf(&val).Elem())
-//			if tt.err {
-//				assert.Error(t, err)
-//			} else {
-//
-//				assert.Equal(t, tt.want, val)
-//			}
-//			// t.Log(tt.name)
-//		})
-//	}
-//}
+func TestDecodeInt(t *testing.T) {
+	t.Parallel()
+
+	tests_ok := []struct {
+		name string
+		data interface{}
+		want int
+		err  bool
+	}{
+		{"int 1", 1, 1, false},
+		{"int 2", 2147483649, 2147483649, false},
+		{"int 3", -2147483649, -2147483649, false},
+		{"int 4", int64(1), 1, false},
+	}
+	for _, tt := range tests_ok {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var value int
+			val := reflect.ValueOf(&value).Elem()
+			err := decodeInt(tt.name, tt.data, val)
+
+			if tt.err {
+				assert.Error(t, err)
+			} else {
+
+				assert.Equal(t, tt.want, value)
+			}
+
+		})
+	}
+}
+
+func TestDecodeUint(t *testing.T) {
+	t.Parallel()
+
+	tests_ok := []struct {
+		name string
+		data interface{}
+		want uint
+		err  bool
+	}{
+		{"uint 1", uint(1), 1, false},
+		{"uint 2", uint(2147483649), 2147483649, false},
+		{"uint 3", int(2147483649), 2147483649, true},
+	}
+	for _, tt := range tests_ok {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var value uint
+			val := reflect.ValueOf(&value).Elem()
+			err := decodeUint(tt.name, tt.data, val)
+
+			if tt.err {
+				assert.Error(t, err)
+			} else {
+
+				assert.Equal(t, tt.want, value)
+			}
+
+		})
+	}
+}
+
+func TestDecodeFloat(t *testing.T) {
+	t.Parallel()
+
+	tests_ok := []struct {
+		name string
+		data interface{}
+		want float64
+		err  bool
+	}{
+		{"float 1", 1.0, 1.0, false},
+		{"float 2", float64(10.0), float64(10.0), false},
+		{"float 3", float32(10.0), 10.0, false},
+		{"float 4", int(10.0), 9.0, true},
+	}
+	for _, tt := range tests_ok {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var value float64
+			val := reflect.ValueOf(&value).Elem()
+			err := decodeFloat(tt.name, tt.data, val)
+
+			if tt.err {
+				assert.Error(t, err)
+			} else {
+
+				assert.Equal(t, tt.want, value)
+			}
+
+		})
+	}
+}
 
 //import (
 //	"fmt"
