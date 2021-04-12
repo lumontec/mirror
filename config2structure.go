@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	//	"sort"
 )
 
 type DynamicStruct interface {
@@ -107,6 +106,77 @@ func decode(name string, input interface{}, outVal reflect.Value) error {
 	}
 
 	return err
+}
+
+func decodeBool(name string, data interface{}, val reflect.Value) error {
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataKind := getKind(dataVal)
+
+	if dataKind != reflect.Bool {
+		return fmt.Errorf(
+			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
+			name, val.Type(), dataVal.Type(), data)
+	}
+
+	val.SetBool(dataVal.Bool())
+	return nil
+}
+
+func decodeInt(name string, data interface{}, val reflect.Value) error {
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataKind := getKind(dataVal)
+
+	if dataKind != reflect.Int {
+		return fmt.Errorf(
+			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
+			name, val.Type(), dataVal.Type(), data)
+	}
+
+	val.SetInt(dataVal.Int())
+	return nil
+}
+
+func decodeUint(name string, data interface{}, val reflect.Value) error {
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataKind := getKind(dataVal)
+
+	if dataKind != reflect.Uint {
+		return fmt.Errorf(
+			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
+			name, val.Type(), dataVal.Type(), data)
+	}
+
+	val.SetUint(dataVal.Uint())
+	return nil
+}
+
+func decodeFloat(name string, data interface{}, val reflect.Value) error {
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataKind := getKind(dataVal)
+
+	if dataKind != reflect.Float64 {
+		return fmt.Errorf(
+			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
+			name, val.Type(), dataVal.Type(), data)
+	}
+
+	val.SetFloat(dataVal.Float())
+	return nil
+}
+
+func decodeString(name string, data interface{}, val reflect.Value) error {
+
+	dataVal := reflect.Indirect(reflect.ValueOf(data))
+	dataKind := getKind(dataVal)
+
+	if dataKind != reflect.String {
+		return fmt.Errorf(
+			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
+			name, val.Type(), dataVal.Type(), data)
+	}
+
+	val.SetString(dataVal.String())
+	return nil
 }
 
 func decodePtr(name string, data interface{}, val reflect.Value) (bool, error) {
@@ -215,62 +285,6 @@ func decodeBasic(name string, data interface{}, val reflect.Value) error {
 	return nil
 }
 
-func decodeBool(name string, data interface{}, val reflect.Value) error {
-	dataVal := reflect.Indirect(reflect.ValueOf(data))
-	dataKind := getKind(dataVal)
-
-	if dataKind != reflect.Bool {
-		return fmt.Errorf(
-			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
-			name, val.Type(), dataVal.Type(), data)
-	}
-
-	val.SetBool(dataVal.Bool())
-	return nil
-}
-
-func decodeInt(name string, data interface{}, val reflect.Value) error {
-	dataVal := reflect.Indirect(reflect.ValueOf(data))
-	dataKind := getKind(dataVal)
-
-	if dataKind != reflect.Int {
-		return fmt.Errorf(
-			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
-			name, val.Type(), dataVal.Type(), data)
-	}
-
-	val.SetInt(dataVal.Int())
-	return nil
-}
-
-func decodeUint(name string, data interface{}, val reflect.Value) error {
-	dataVal := reflect.Indirect(reflect.ValueOf(data))
-	dataKind := getKind(dataVal)
-
-	if dataKind != reflect.Uint {
-		return fmt.Errorf(
-			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
-			name, val.Type(), dataVal.Type(), data)
-	}
-
-	val.SetUint(dataVal.Uint())
-	return nil
-}
-
-func decodeFloat(name string, data interface{}, val reflect.Value) error {
-	dataVal := reflect.Indirect(reflect.ValueOf(data))
-	dataKind := getKind(dataVal)
-
-	if dataKind != reflect.Float64 {
-		return fmt.Errorf(
-			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
-			name, val.Type(), dataVal.Type(), data)
-	}
-
-	val.SetFloat(dataVal.Float())
-	return nil
-}
-
 func decodeSlice(name string, data interface{}, val reflect.Value) error {
 
 	dataVal := reflect.Indirect(reflect.ValueOf(data))
@@ -370,27 +384,6 @@ func decodeArray(name string, data interface{}, val reflect.Value) error {
 		return &Error{errors}
 	}
 
-	return nil
-}
-
-func decodeString(name string, data interface{}, val reflect.Value) error {
-
-	dataVal := reflect.Indirect(reflect.ValueOf(data))
-	dataKind := getKind(dataVal)
-
-	converted := true
-	switch {
-	case dataKind == reflect.String:
-		val.SetString(dataVal.String())
-	default:
-		converted = false
-	}
-
-	if !converted {
-		return fmt.Errorf(
-			"'%s' expected type '%s', got unconvertible type '%s', value: '%v'",
-			name, val.Type(), dataVal.Type(), data)
-	}
 	return nil
 }
 

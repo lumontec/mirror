@@ -150,6 +150,73 @@ func TestDecodeFloat(t *testing.T) {
 	}
 }
 
+func TestDecodeString(t *testing.T) {
+	t.Parallel()
+
+	tests_ok := []struct {
+		name string
+		data interface{}
+		want string
+		err  bool
+	}{
+		{"string 1", "string", "string", false},
+		{"string 2", 1, "string", true},
+	}
+	for _, tt := range tests_ok {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var value string
+			val := reflect.ValueOf(&value).Elem()
+			err := decodeString(tt.name, tt.data, val)
+
+			if tt.err {
+				assert.Error(t, err)
+			} else {
+
+				assert.Equal(t, tt.want, value)
+			}
+
+		})
+	}
+}
+
+func TestDecodePtr(t *testing.T) {
+	t.Parallel()
+
+	tests_ok := []struct {
+		name string
+		data interface{}
+		want interface{}
+		ret  bool
+		err  bool
+	}{
+		{"ptr 1", 1, 1, false, false},
+		{"ptr 2", "string", "string", false, false},
+		{"ptr 3", nil, nil, true, false},
+	}
+	for _, tt := range tests_ok {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ptr := &tt.data
+			val := reflect.ValueOf(ptr)
+			ret, err := decodePtr(tt.name, tt.data, val)
+
+			if tt.err {
+				assert.Error(t, err)
+			} else {
+
+				assert.Equal(t, tt.want, *ptr)
+				assert.Equal(t, tt.ret, ret)
+			}
+
+		})
+	}
+}
+
 //import (
 //	"fmt"
 //	"testing"
