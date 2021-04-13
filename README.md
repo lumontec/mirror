@@ -12,8 +12,8 @@ type Config struct {
 }
 ```
 
-* **produces detailed error report**: will output meaningful error messages in case any key is not matched 
-```bash
+* **produces detailed error report**: will return meaningful errors in case any key is not matched 
+```text
         * detected unused keys: emails name
         * detected unused keys: medium twitter
         * map value not found for key: 
