@@ -399,13 +399,14 @@ func decodeStruct(name string, data interface{}, val reflect.Value) error {
 	}
 
 	dataValKind := dataVal.Kind()
-	switch dataValKind {
-	case reflect.Map:
-		return decodeStructFromMap(name, dataVal, val)
 
-	default:
-		return fmt.Errorf("'%s' expected a map, got '%s'", name, dataVal.Kind())
+	if dataValKind != reflect.Map {
+		return fmt.Errorf(
+			"'%s' expected a map, got unconvertible type '%s', value: '%v'",
+			name, dataVal.Type(), data)
 	}
+
+	return decodeStructFromMap(name, dataVal, val)
 }
 
 func decodeStructFromMap(name string, dataVal, val reflect.Value) error {

@@ -1,6 +1,7 @@
 package config2structure
 
 import (
+	//	"fmt"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
@@ -8,7 +9,7 @@ import (
 
 // global convenience types and functions
 
-type submap map[string]interface{}
+type smap map[string]interface{}
 
 func TestDecodeBool(t *testing.T) {
 	t.Parallel()
@@ -292,4 +293,43 @@ func TestDecodeArray(t *testing.T) {
 
 		})
 	}
+}
+
+func TestDecodeStructFromMapSimple(t *testing.T) {
+
+	type ExtraTyp struct {
+		Twitter string `c2s:"twitter"`
+	}
+
+	type Person struct {
+		Name   string   `c2s:"name"`
+		Age    int      `c2s:"age"`
+		Emails []string `c2s:"emails"`
+		Extra  ExtraTyp `c2s:"extra"`
+	}
+
+	input := map[string]interface{}{
+		"name":   "lumontec",
+		"age":    91,
+		"emails": []string{"one", "two", "three"},
+		"extra": map[string]string{
+			"twitter": "lumontec",
+		},
+	}
+
+	var want = Person{
+		Name:   "lumontec",
+		Age:    91,
+		Emails: []string{"one", "two", "three"},
+		Extra: ExtraTyp{
+			Twitter: "lumontec",
+		},
+	}
+
+	var result Person
+	val := reflect.ValueOf(&result).Elem()
+	err := decodeStructFromMap("struct", reflect.Indirect(reflect.ValueOf(input)), val)
+
+	assert.NoError(t, err)
+	assert.Equal(t, want, val.Interface())
 }
