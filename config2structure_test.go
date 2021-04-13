@@ -342,10 +342,9 @@ func TestDecodeStructFromMapErrors(t *testing.T) {
 	}
 
 	type Person struct {
-		Name   string   `c2:"name"`
-		Age    int      `c2s:"age"`
-		Emails []string `c2s:"emails"`
-		Extra  ExtraTyp `c2s:"extra"`
+		Name  string   `c2:"name"`
+		Age   int      `c2s:"age"`
+		Extra ExtraTyp `c2s:"extra"`
 	}
 
 	input := map[string]interface{}{
@@ -359,7 +358,13 @@ func TestDecodeStructFromMapErrors(t *testing.T) {
 	}
 
 	wanterr := &Error{
-		Errors: []string{"missing `c2s` tag for struct field: Name", "map value not found for key: ", "map value not found for key: twit", "map value not found for key: med"},
+		Errors: []string{
+			"missing `c2s` tag for struct field: Name",
+			"map value not found for key: ",
+			"map value not found for key: twit",
+			"map value not found for key: med",
+			"detected unused keys: medium twitter",
+			"detected unused keys: emails name"},
 	}
 
 	var result Person

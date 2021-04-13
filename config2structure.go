@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -419,10 +420,11 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 	}
 
 	dataValKeys := make(map[reflect.Value]struct{})
-	dataValKeysUnused := make(map[interface{}]struct{})
+	dataValKeysUnused := map[string]interface{}{}
+
 	for _, dataValKey := range dataVal.MapKeys() {
 		dataValKeys[dataValKey] = struct{}{}
-		dataValKeysUnused[dataValKey.Interface()] = struct{}{}
+		dataValKeysUnused[dataValKey.String()] = struct{}{}
 	}
 
 	errors := make([]string, 0)
@@ -516,7 +518,7 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		}
 
 		// Delete the key we're using from the unused map so we stop tracking
-		delete(dataValKeysUnused, rawMapKey.Interface())
+		delete(dataValKeysUnused, rawMapKey.String())
 
 		// If the name is empty string, then we're at the root, and we
 		// don't dot-join the fields.
@@ -527,6 +529,16 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		if err := decode(fieldName, rawMapVal.Interface(), fieldValue); err != nil {
 			errors = appendErrors(errors, err)
 		}
+	}
+
+	// Emit error if unused keys slice
+	dataValKeysUnusedString := []string{}
+	for key := range dataValKeysUnused {
+		dataValKeysUnusedString = append(dataValKeysUnusedString, key)
+	}
+	sort.Strings(dataValKeysUnusedString)
+	if len(dataValKeysUnusedString) > 0 {
+		errors = append(errors, "detected unused keys: "+strings.Join(dataValKeysUnusedString, " "))
 	}
 
 	if len(errors) > 0 {
