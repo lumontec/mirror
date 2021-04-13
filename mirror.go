@@ -1,4 +1,4 @@
-package config2structure
+package mirror
 
 import (
 	"encoding/json"
@@ -451,7 +451,7 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		fieldName := field.Name
 
 		// look for tags
-		tags := field.Tag.Get("c2s")
+		tags := field.Tag.Get("mirror")
 		tagSlice := strings.Split(tags, ",")
 		tagValue := tagSlice[0]
 
@@ -461,7 +461,7 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		}
 
 		if tagValue == "" {
-			errors = append(errors, "missing `c2s` tag for struct field: "+fieldName)
+			errors = append(errors, "missing `mirror` tag for struct field: "+fieldName)
 		}
 
 		// cast to type if tagDynamic is present
@@ -510,8 +510,6 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 					errors = append(errors, "map value not found for dynamic selector: "+selectValue)
 					continue
 				}
-
-				fmt.Println("until here:", tagDynamic)
 
 				fieldValue.Addr().Interface().(DynamicStruct).SetDynamicType(rawMapSelectVal.Interface().(string))
 			}

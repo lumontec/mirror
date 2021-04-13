@@ -1,10 +1,58 @@
-# config2struct
+# mirror
 
-This is a simple go library to parse complex dynamic json/yaml configurations into equivalent structures easily accessible at runtime
+mirror is a dead simple go library capable of reflecting complex dynamic json/yaml configurations into equivalent structures accessible at runtime. 
 
-## Example
 
-Key ***dynamicelement*** is polymorphic configuration wich can be of several types: "myfloat", "myint", ..
+### Features
+
+* **based on go tags**: simply map your struct members with equivalent go tags 
+
+* **produces detailed error report**: will output informative messages in case any key is not matched 
+
+* **dynamic configuration**: supports parsing of complex kubernetes style declarative yaml configurations
+
+* **support for both json and yaml**
+
+
+### Example (simple and boring)
+
+We simply map yaml configuration into equivalent struct:
+**config_simple.yaml**
+```yaml
+config:
+  name: "myconfig"
+```
+
+Declare the struct by mapping struct Name field to yaml name key:
+**schema.go**
+```go
+type Config struct {
+  Name string      `mirror:"name"`
+}
+```
+
+Now mirror the config into the struct and just consume your config struct:
+**main.go**
+```go
+import "github.com/lumontec/mirror"
+...
+
+// Read yaml file content 
+yamlContent, err := ioutil.ReadFile(absPath)
+...
+
+// Mirror the yaml content into our Config object
+config := Config{}
+err := UnmarshalYaml([]byte(yamlContent), &config)
+
+... // Consume your configuration 
+```
+
+
+### Example (dynamic configuration)
+
+We demonstrate how to handle a dynamic configuration.
+Key ***dynamicelement*** points to polymorphic subconfiguration wich can be of several types: "myfloat", "myint", as follow ...
 
 **config_float.yaml**
 ```yaml
@@ -28,20 +76,24 @@ config:
       valueint: 1 
 ```
 
-We define an abstract schema, implementing the **c2s.DynamicStruct** interface for the ***dynelement*** by defining the function ***SetDynamicType(string)*** to return our specialized type depending on the string parameter value
+We define an abstract schema, implementing the **mirror.DynamicStruct** interface for the ***dynelement*** by defining the function ***SetDynamicType(string)*** to return our specialized type depending on the string parameter value
 
 **schema.go**
 ```go
 type Config struct {
-  Name string      `c2s:"name"`
-  DynElm DynConfig `c2s:"dynelement,dynamic=type"`  // we add the dynamic selector, required by c2s library, sets selector key = type
+  Name string      `mirror:"name"`
+  DynElm DynConfig `mirror:"dynelement,dynamic=type"`  // we add the dynamic selector, required by c2s library, sets selector key = type
 }
 
 type DynConfig struct {
-  Type string        `c2s:"type"`
-  Config interface{} `c2s:"config"`
+  Type string        `mirror:"type"`
+  Config interface{} `mirror:"config"`
 }
 
+// SetDynamicType implements mirror library DynamicStruct 
+// interface, this method is called during the mirroring 
+// process in order to set the Config interface to the 
+// correct relative type
 func (dc *DynConfig) SetDynamicType (Type string) {
   switch Type {
   case "myfloat": 
@@ -56,13 +108,13 @@ func (dc *DynConfig) SetDynamicType (Type string) {
 }
 
 type MyFloatConfig struct {
-  Key string          `c2s:"keyfloat"`
-  ValueFloat float64  `c2s:"valuefloat"`
+  Key string          `mirror:"keyfloat"`
+  ValueFloat float64  `mirror:"valuefloat"`
 }
 
 type MyIntConfig struct {
-  Key string    `c2s:"keyint"`
-  ValueInt int  `c2s:"valueint"`
+  Key string    `mirror:"keyint"`
+  ValueInt int  `mirror:"valueint"`
 }
 ```
 
@@ -70,24 +122,18 @@ Then we can consume our configuration as such
 
 **main.go**
 ```go
-import "github.com/lumontec/config2struct"
+import "github.com/lumontec/mirror"
+...
 
-... // Unmarshal the yaml into empty Config object
+// Read yaml file content 
+yamlContent, err := ioutil.ReadFile(absPath)
+...
 
-var data = `
-config:
-  name: "myconfig"
-  dynelement:
-    type: "myint"
-    config:
-      keyint: "keyname" 
-      valueint: 1 
-`
+// Mirror the yaml content into our Config object
 config := Config{}
-err := UnmarshalYaml([]byte(data), &config)
+err := UnmarshalYaml([]byte(yamlContent), &config)
 
-... // Access dynamic fields based on type
-
+// Access dynamic fields through type assertion based on Type key
 switch config.DynElm.Type {
   case "myfloat": 
     {

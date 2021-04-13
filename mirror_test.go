@@ -1,7 +1,6 @@
-package config2structure
+package mirror
 
 import (
-	//	"fmt"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
@@ -294,14 +293,14 @@ func TestDecodeArray(t *testing.T) {
 func TestDecodeStructFromMapSimple(t *testing.T) {
 
 	type ExtraTyp struct {
-		Twitter string `c2s:"twitter"`
+		Twitter string `mirror:"twitter"`
 	}
 
 	type Person struct {
-		Name   string   `c2s:"name"`
-		Age    int      `c2s:"age"`
-		Emails []string `c2s:"emails"`
-		Extra  ExtraTyp `c2s:"extra"`
+		Name   string   `mirror:"name"`
+		Age    int      `mirror:"age"`
+		Emails []string `mirror:"emails"`
+		Extra  ExtraTyp `mirror:"extra"`
 	}
 
 	input := map[string]interface{}{
@@ -333,14 +332,14 @@ func TestDecodeStructFromMapSimple(t *testing.T) {
 func TestDecodeStructFromMapErrors(t *testing.T) {
 
 	type ExtraTyp struct {
-		Twitter string `c2s:"twit"`
-		Medium  string `c2s:"med"`
+		Twitter string `mirror:"twit"`
+		Medium  string `mirror:"med"`
 	}
 
 	type Person struct {
 		Name  string   `c2:"name"`
-		Age   int      `c2s:"age"`
-		Extra ExtraTyp `c2s:"extra"`
+		Age   int      `mirror:"age"`
+		Extra ExtraTyp `mirror:"extra"`
 	}
 
 	input := map[string]interface{}{
@@ -355,7 +354,7 @@ func TestDecodeStructFromMapErrors(t *testing.T) {
 
 	wanterr := &Error{
 		Errors: []string{
-			"missing `c2s` tag for struct field: Name",
+			"missing `mirror` tag for struct field: Name",
 			"map value not found for key: ",
 			"map value not found for key: twit",
 			"map value not found for key: med",
@@ -372,8 +371,8 @@ func TestDecodeStructFromMapErrors(t *testing.T) {
 }
 
 type DynTyp struct {
-	Type  string      `c2s:"type"`
-	Value interface{} `c2s:"value"`
+	Type  string      `mirror:"type"`
+	Value interface{} `mirror:"value"`
 }
 
 func (e *DynTyp) SetDynamicType(Type string) {
@@ -388,9 +387,9 @@ func (e *DynTyp) SetDynamicType(Type string) {
 func TestDecodeStructFromMapDynamic(t *testing.T) {
 
 	type Person struct {
-		Name  string `c2s:"name"`
-		Age   int    `c2s:"age"`
-		Extra DynTyp `c2s:"extra,dynamic=type"`
+		Name  string `mirror:"name"`
+		Age   int    `mirror:"age"`
+		Extra DynTyp `mirror:"extra,dynamic=type"`
 	}
 
 	input := map[string]interface{}{
@@ -423,9 +422,9 @@ func TestDecodeStructFromMapDynamic(t *testing.T) {
 func TestDecodeStructFromMapDynamicErr(t *testing.T) {
 
 	type Person struct {
-		Name  string `c2s:"name"`
-		Age   int    `c2s:"age"`
-		Extra DynTyp `c2s:"extra,dynamic=ty"`
+		Name  string `mirror:"name"`
+		Age   int    `mirror:"age"`
+		Extra DynTyp `mirror:"extra,dynamic=ty"`
 	}
 
 	input := map[string]interface{}{

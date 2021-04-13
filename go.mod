@@ -1,4 +1,4 @@
-module github.com/lumontec/config2struct
+module github.com/lumontec/mirror
 
 go 1.16
 

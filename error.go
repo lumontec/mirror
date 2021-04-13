@@ -1,4 +1,4 @@
-package config2structure
+package mirror
 
 import (
 	"errors"
