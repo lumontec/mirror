@@ -192,7 +192,7 @@ func TestDecodePtr(t *testing.T) {
 		ret  bool
 		err  bool
 	}{
-		{"ptr 1", 1, 1, false, false},
+		{"ptr 1", int(1), int(1), false, false},
 		{"ptr 2", "string", "string", false, false},
 		{"ptr 3", nil, nil, true, false},
 	}
@@ -201,9 +201,18 @@ func TestDecodePtr(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			ptr := &tt.data
-			val := reflect.ValueOf(ptr)
-			ret, err := decodePtr(tt.name, tt.data, val)
+			// This generates an empty value ptr on copy of tt.data type
+			value := tt.data
+			refval := reflect.ValueOf(&value).Elem()
+			if tt.data != nil {
+				refval.Set(reflect.Zero(reflect.TypeOf(tt.data)))
+			} else {
+				value = nil
+			}
+			ptr := &value
+
+			valptr := reflect.ValueOf(ptr)
+			ret, err := decodePtr(tt.name, tt.data, valptr)
 
 			if tt.err {
 				assert.Error(t, err)
@@ -217,112 +226,34 @@ func TestDecodePtr(t *testing.T) {
 	}
 }
 
-//import (
-//	"fmt"
-//	"testing"
-//)
-//
-//type Config struct {
-//	ConfigElmArr ConfigElm `c2s:"config"`
-//}
-//
-//type ConfigElm struct {
-//	Name        string      `c2s:"name"`
-//	DynElmArray []DynConfig `c2s:"dynelement,dynamic=type"`
-//}
-//
-//type DynConfig struct {
-//	Type   string      `c2s:"type"`
-//	Config interface{} `c2s:"config"`
-//}
-//
-//func (dc *DynConfig) SetDynamicType(Type string) {
-//	switch Type {
-//	case "myfloat":
-//		{
-//			dc.Config = MyFloatConfig{}
-//		}
-//	case "myint":
-//		{
-//			dc.Config = MyIntConfig{}
-//		}
-//	case "null":
-//		{
-//			dc.Config = nil
-//		}
-//	}
-//}
-//
-//type MyFloatConfig struct {
-//	Key   string  `c2s:"keyfloat"`
-//	Value float64 `c2s:"valuefloat"`
-//}
-//
-//type MyIntConfig struct {
-//	Key   string `c2s:"keyint"`
-//	Value int    `c2s:"valueint"`
-//}
-//
-//func TestYamlUnmarshal(t *testing.T) {
+//func TestDecodeSlice(t *testing.T) {
 //	t.Parallel()
-//	var datastruct = `
-//        config:
-//          name: "myconfig1"
-//          dynelement:
-//            - type: "myfloat"
-//              config:
-//                keyfloat: "chiavefloat"
-//                valuefloat: 23.2
-//            - type: "null"
-//              config: ''
-//       `
-//	var cfg = Config{}
-//	err := UnmarshalYaml([]byte(datastruct), &cfg)
-//	if err != nil {
-//		t.Fatalf("got an err: %s", err)
+//
+//	tests_ok := []struct {
+//		name string
+//		data []int
+//		want []int
+//		ret  bool
+//		err  bool
+//	}{
+//		{"slice 1", []int{1, 1}, []int{1, 1}, false, false},
 //	}
+//	for _, tt := range tests_ok {
+//		tt := tt
+//		t.Run(tt.name, func(t *testing.T) {
+//			t.Parallel()
 //
-//	fmt.Printf("unmarshalled config: %#v \n", cfg)
-//	//	fmt.Printf("subconf type: %s \n", reflect.TypeOf(cfg.DynElm[0].Config))
-//	//	fmt.Printf("access float: %s \n", cfg.DynElm[0].Config.(MyFloatConfig).Key)
+//			slc := &tt.data
+//			val := reflect.ValueOf(slc).Elem()
+//			err := decodeSlice(tt.name, tt.data, val)
 //
-//	//	if cfg.Name != "myconfig" {
-//	//		t.Errorf("string does not match: %s", cfg.Name)
-//	//	}
-//}
+//			if tt.err {
+//				assert.Error(t, err)
+//			} else {
 //
-//func TestJsonlUnmarshal(t *testing.T) {
-//	t.Parallel()
-//	var datastruct = `
-//        {
-//          "config": {
-//            "name": "myconfig1",
-//            "dynelement": [
-//              {
-//                "type": "myfloat",
-//                "config": {
-//                  "keyfloat": "chiavefloat",
-//                  "valuefloat": 23.2
-//                }
-//              },
-//              {
-//                "type": "null",
-//                "config": ""
-//              }
-//            ]
-//          }
-//        }        `
-//	var cfg = Config{}
-//	err := UnmarshalJson([]byte(datastruct), &cfg)
-//	if err != nil {
-//		t.Fatalf("got an err: %s", err)
+//				assert.Equal(t, tt.want, val)
+//			}
+//
+//		})
 //	}
-//
-//	fmt.Printf("unmarshalled config: %#v \n", cfg)
-//	//	fmt.Printf("subconf type: %s \n", reflect.TypeOf(cfg.DynElm.Config))
-//	//	fmt.Printf("access float: %s \n", cfg.DynElm.Config.(MyFloatConfig).Key)
-//
-//	//	if cfg.Name != "myconfig" {
-//	//		t.Errorf("string does not match: %s", cfg.Name)
-//	//	}
 //}
