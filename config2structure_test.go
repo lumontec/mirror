@@ -7,10 +7,6 @@ import (
 	"testing"
 )
 
-// global convenience types and functions
-
-type smap map[string]interface{}
-
 func TestDecodeBool(t *testing.T) {
 	t.Parallel()
 
@@ -365,6 +361,87 @@ func TestDecodeStructFromMapErrors(t *testing.T) {
 			"map value not found for key: med",
 			"detected unused keys: medium twitter",
 			"detected unused keys: emails name"},
+	}
+
+	var result Person
+	val := reflect.ValueOf(&result).Elem()
+	err := decodeStructFromMap("struct", reflect.Indirect(reflect.ValueOf(input)), val)
+
+	assert.Error(t, err)
+	assert.Equal(t, wanterr, err)
+}
+
+type DynTyp struct {
+	Type  string      `c2s:"type"`
+	Value interface{} `c2s:"value"`
+}
+
+func (e *DynTyp) SetDynamicType(Type string) {
+	switch Type {
+	case "int":
+		{
+			e.Value = int(0)
+		}
+	}
+}
+
+func TestDecodeStructFromMapDynamic(t *testing.T) {
+
+	type Person struct {
+		Name  string `c2s:"name"`
+		Age   int    `c2s:"age"`
+		Extra DynTyp `c2s:"extra,dynamic=type"`
+	}
+
+	input := map[string]interface{}{
+		"name": "lumontec",
+		"age":  91,
+		"extra": map[string]interface{}{
+			"type":  "int",
+			"value": 10,
+		},
+	}
+
+	var want = Person{
+		Name: "lumontec",
+		Age:  91,
+		Extra: DynTyp{
+			Type:  "int",
+			Value: 10,
+		},
+	}
+
+	var result Person
+	val := reflect.ValueOf(&result).Elem()
+	err := decodeStructFromMap("struct", reflect.Indirect(reflect.ValueOf(input)), val)
+
+	assert.NoError(t, err)
+	assert.Equal(t, want, val.Interface())
+
+}
+
+func TestDecodeStructFromMapDynamicErr(t *testing.T) {
+
+	type Person struct {
+		Name  string `c2s:"name"`
+		Age   int    `c2s:"age"`
+		Extra DynTyp `c2s:"extra,dynamic=ty"`
+	}
+
+	input := map[string]interface{}{
+		"name": "lumontec",
+		"age":  91,
+		"extra": map[string]interface{}{
+			"type":  "int",
+			"value": 10,
+		},
+	}
+
+	wanterr := &Error{
+		Errors: []string{
+			"map value not found for dynamic selector: ty",
+			"detected unused keys: extra",
+		},
 	}
 
 	var result Person

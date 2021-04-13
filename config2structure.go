@@ -450,32 +450,38 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		field, fieldValue := f.field, f.val
 		fieldName := field.Name
 
+		// look for tags
 		tags := field.Tag.Get("c2s")
 		tagSlice := strings.Split(tags, ",")
 		tagValue := tagSlice[0]
+
 		tagDynamic := ""
 		if len(tagSlice) > 1 {
 			tagDynamic = tagSlice[1]
 		}
 
-		// use tag if present
 		if tagValue == "" {
 			errors = append(errors, "missing `c2s` tag for struct field: "+fieldName)
 		}
 
 		// cast to type if tagDynamic is present
 		if tagDynamic != "" {
-			selectSlice := strings.Split(tagDynamic, "=")
-			selectValue := selectSlice[1]
+
+			if !strings.HasPrefix(tagDynamic, "dynamic=") {
+				return fmt.Errorf("'%s' invalid dynamic selector tag", name)
+			}
+
+			selectValue := strings.Split(tagDynamic, "=")[1]
 			rawMapSelectKey := reflect.ValueOf(selectValue)
 			rawMapKey := reflect.ValueOf(tagValue)
 			rawMapVal := dataVal.MapIndex(rawMapKey)
+
 			if rawMapVal.Elem().Kind() == reflect.Slice {
 				// Get slice type
 				valType := fieldValue.Type()
 				valElemType := valType.Elem()
 				sliceType := reflect.SliceOf(valElemType)
-				// Create slice with len
+				// Create a new slice over the prev
 				valSlice := fieldValue
 				if valSlice.IsNil() {
 					// Make a new slice to hold our result, same size as the original data.
@@ -485,6 +491,12 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 				// Cast dynamic type for each element of slice
 				for i := 0; i < rawMapVal.Elem().Len(); i++ {
 					rawMapSelectVal := rawMapVal.Elem().Index(i).Elem().MapIndex(rawMapSelectKey)
+
+					if !rawMapSelectVal.IsValid() {
+						errors = append(errors, "map value not found in slice element for dynamic selector: "+selectValue)
+						continue
+					}
+
 					valSlice.Index(i).Addr().Interface().(DynamicStruct).SetDynamicType(rawMapSelectVal.Interface().(string))
 				}
 
@@ -493,8 +505,17 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 
 			} else {
 				rawMapSelectVal := rawMapVal.Elem().MapIndex(rawMapSelectKey)
+
+				if !rawMapSelectVal.IsValid() {
+					errors = append(errors, "map value not found for dynamic selector: "+selectValue)
+					continue
+				}
+
+				fmt.Println("until here:", tagDynamic)
+
 				fieldValue.Addr().Interface().(DynamicStruct).SetDynamicType(rawMapSelectVal.Interface().(string))
 			}
+
 		}
 
 		rawMapKey := reflect.ValueOf(tagValue)
@@ -546,24 +567,6 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 	}
 
 	return nil
-}
-
-func isEmptyValue(v reflect.Value) bool {
-	switch getKind(v) {
-	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
-		return v.Len() == 0
-	case reflect.Bool:
-		return !v.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v.Int() == 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return v.Uint() == 0
-	case reflect.Float32, reflect.Float64:
-		return v.Float() == 0
-	case reflect.Interface, reflect.Ptr:
-		return v.IsNil()
-	}
-	return false
 }
 
 func getKind(val reflect.Value) reflect.Kind {
