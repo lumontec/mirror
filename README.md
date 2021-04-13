@@ -80,7 +80,7 @@ We define an abstract schema, implementing the **mirror.DynamicStruct** interfac
 ```go
 type Config struct {
   Name string      `mirror:"name"`
-  DynElm DynConfig `mirror:"dynelement,dynamic=type"`  // we add the dynamic selector, required by c2s library, sets selector key = type
+  DynElm DynConfig `mirror:"dynelement,dynamic=type"`  // we add the dynamic selector, required by mirror library, sets selector key = type
 }
 
 type DynConfig struct {
