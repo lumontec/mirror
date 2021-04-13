@@ -1,5 +1,7 @@
 # mirror
 
+[![Build Status](https://api.travis-ci.com/lumontec/mirror.svg?branch=master)](https://travis-ci.com/lumontec/mirror)
+
 mirror is a dead simple go library capable of reflecting complex dynamic json/yaml configurations into equivalent structures accessible at runtime. 
 
 
