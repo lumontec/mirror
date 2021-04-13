@@ -6,5 +6,6 @@ env:
 before_install:
   - go get github.com/stretchr/testify v1.7.0
   - go get gopkg.in/yaml.v2 v2.4.0
+  - go get github.com/stretchr/testify
 script:
   - go test -v -covermode=count -coverprofile=coverage.out ./...
