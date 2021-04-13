@@ -457,10 +457,8 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		}
 
 		// use tag if present
-		if tagValue != "" {
-			fieldName = tagValue
-		} else {
-			return fmt.Errorf("tag value not set")
+		if tagValue == "" {
+			errors = append(errors, "missing `c2s` tag for struct field: "+fieldName)
 		}
 
 		// cast to type if tagDynamic is present
@@ -468,7 +466,7 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 			selectSlice := strings.Split(tagDynamic, "=")
 			selectValue := selectSlice[1]
 			rawMapSelectKey := reflect.ValueOf(selectValue)
-			rawMapKey := reflect.ValueOf(fieldName)
+			rawMapKey := reflect.ValueOf(tagValue)
 			rawMapVal := dataVal.MapIndex(rawMapKey)
 			if rawMapVal.Elem().Kind() == reflect.Slice {
 				// Get slice type
@@ -497,11 +495,12 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 			}
 		}
 
-		rawMapKey := reflect.ValueOf(fieldName)
+		rawMapKey := reflect.ValueOf(tagValue)
 		rawMapVal := dataVal.MapIndex(rawMapKey)
 
 		if !rawMapVal.IsValid() {
-			panic("raw map is not valid")
+			errors = append(errors, "map value not found for key: "+tagValue)
+			continue
 		}
 
 		if !fieldValue.IsValid() {
@@ -512,7 +511,8 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		// If we can't set the field, then it is unexported or something,
 		// and we just continue onwards.
 		if !fieldValue.CanSet() {
-			return fmt.Errorf("can not set field")
+			errors = append(errors, "cannot set field: "+fieldName+" likely unexported")
+			continue
 		}
 
 		// Delete the key we're using from the unused map so we stop tracking

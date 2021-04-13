@@ -333,3 +333,39 @@ func TestDecodeStructFromMapSimple(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, want, val.Interface())
 }
+
+func TestDecodeStructFromMapErrors(t *testing.T) {
+
+	type ExtraTyp struct {
+		Twitter string `c2s:"twit"`
+		Medium  string `c2s:"med"`
+	}
+
+	type Person struct {
+		Name   string   `c2:"name"`
+		Age    int      `c2s:"age"`
+		Emails []string `c2s:"emails"`
+		Extra  ExtraTyp `c2s:"extra"`
+	}
+
+	input := map[string]interface{}{
+		"name":   "lumontec",
+		"age":    91,
+		"emails": []string{"one", "two", "three"},
+		"extra": map[string]string{
+			"twitter": "lumontec",
+			"medium":  "lumontec",
+		},
+	}
+
+	wanterr := &Error{
+		Errors: []string{"missing `c2s` tag for struct field: Name", "map value not found for key: ", "map value not found for key: twit", "map value not found for key: med"},
+	}
+
+	var result Person
+	val := reflect.ValueOf(&result).Elem()
+	err := decodeStructFromMap("struct", reflect.Indirect(reflect.ValueOf(input)), val)
+
+	assert.Error(t, err)
+	assert.Equal(t, wanterr, err)
+}
