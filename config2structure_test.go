@@ -226,34 +226,70 @@ func TestDecodePtr(t *testing.T) {
 	}
 }
 
-//func TestDecodeSlice(t *testing.T) {
-//	t.Parallel()
-//
-//	tests_ok := []struct {
-//		name string
-//		data []int
-//		want []int
-//		ret  bool
-//		err  bool
-//	}{
-//		{"slice 1", []int{1, 1}, []int{1, 1}, false, false},
-//	}
-//	for _, tt := range tests_ok {
-//		tt := tt
-//		t.Run(tt.name, func(t *testing.T) {
-//			t.Parallel()
-//
-//			slc := &tt.data
-//			val := reflect.ValueOf(slc).Elem()
-//			err := decodeSlice(tt.name, tt.data, val)
-//
-//			if tt.err {
-//				assert.Error(t, err)
-//			} else {
-//
-//				assert.Equal(t, tt.want, val)
-//			}
-//
-//		})
-//	}
-//}
+func TestDecodeSlice(t *testing.T) {
+	t.Parallel()
+
+	tests_ok := []struct {
+		name string
+		data interface{}
+		want []int
+		err  bool
+	}{
+		{"slice 1", []int{1, 1}, []int{1, 1}, false},
+		{"slice 2", []int{}, []int{}, false},
+		{"slice 3", nil, nil, false},
+		{"slice 4", 100, []int{}, true},
+	}
+	for _, tt := range tests_ok {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var slc []int
+
+			val := reflect.ValueOf(&slc).Elem()
+			err := decodeSlice(tt.name, tt.data, val)
+
+			if tt.err {
+				assert.Error(t, err)
+			} else {
+				assert.Equal(t, tt.want, val.Interface())
+			}
+
+		})
+	}
+}
+
+func TestDecodeArray(t *testing.T) {
+	t.Parallel()
+
+	tests_ok := []struct {
+		name string
+		data interface{}
+		want [2]int
+		err  bool
+	}{
+		{"slice 1", [2]int{1, 1}, [2]int{1, 1}, false},
+		{"slice 2", [2]int{}, [2]int{}, false},
+		{"slice 3", [1]int{}, [2]int{}, false},
+		{"slice 4", 100, [2]int{1, 1}, true},
+	}
+	for _, tt := range tests_ok {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var slc [2]int
+
+			val := reflect.ValueOf(&slc).Elem()
+			err := decodeArray(tt.name, tt.data, val)
+
+			if tt.err {
+				assert.Error(t, err)
+			} else {
+				assert.Equal(t, tt.want, val.Interface())
+			}
+
+		})
+	}
+}
