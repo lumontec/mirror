@@ -4,6 +4,7 @@ go:
 env:
   - "PATH=/home/travis/gopath/bin:$PATH"
 before_install:
-  - go mod tidy 
+	- go get github.com/stretchr/testify v1.7.0
+	- go get gopkg.in/yaml.v2 v2.4.0
 script:
   - go test -v -covermode=count -coverprofile=coverage.out ./...
