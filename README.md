@@ -6,12 +6,53 @@ mirror is a dead simple go library capable of reflecting complex dynamic json/ya
 ### Features
 
 * **based on go tags**: simply map your struct members with equivalent go tags 
-* **produces detailed error report**: will output informative messages in case any key is not matched 
+```go
+type Config struct {
+  Name string      `mirror:"name"`
+}
+```
+
+* **produces detailed error report**: will output meaningful error messages in case any key is not matched 
+```bash
+        * detected unused keys: emails name
+        * detected unused keys: medium twitter
+        * map value not found for key: 
+        * map value not found for key: med
+        * map value not found for key: twit
+        * missing `mirror` tag for struct field: Name
+```
+
 * **dynamic configuration**: supports parsing of complex kubernetes style declarative yaml configurations
+Your config will is assertable at runtime:
+```go
+// Access dynamic fields through type assertion based on Type key
+switch config.DynElm.Type {
+  case "myfloat": 
+    {
+      floatcfg := config.DynElm.Config(MyFloatConfig)
+      // Do stuff with my float configuration
+    }
+  case "myint": 
+    {
+      intcfg := config.DynElm.Config(MyIntConfig)
+      // Do stuff with my int configuration
+    }
+    ...
+}
+```
 * **support for both json and yaml**
+```go
+config := Config{}
+
+err := UnmarshalYaml([]byte(yamlContent), &config)
+...
+err := UnmarshalJson([]byte(jsonContent), &config)
+...
+
+```
 
 
-### Example (simple and boring)
+## Example (simple and boring)
 
 We simply map yaml configuration into equivalent struct:
 **config_simple.yaml**
@@ -47,7 +88,7 @@ fmt.Printf("Config.Name=%s",config.Name)
 ```
 
 
-### Example (dynamic configuration = more fun)
+## Example (dynamic configuration = more fun)
 
 We demonstrate how to handle a dynamic configuration.
 Key **dynamicelement** points to polymorphic subconfiguration wich can be of several types: "myfloat", "myint", as follow ...

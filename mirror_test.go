@@ -366,6 +366,8 @@ func TestDecodeStructFromMapErrors(t *testing.T) {
 	val := reflect.ValueOf(&result).Elem()
 	err := decodeStructFromMap("struct", reflect.Indirect(reflect.ValueOf(input)), val)
 
+	t.Log(err)
+
 	assert.Error(t, err)
 	assert.Equal(t, wanterr, err)
 }
