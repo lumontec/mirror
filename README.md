@@ -6,11 +6,8 @@ mirror is a dead simple go library capable of reflecting complex dynamic json/ya
 ### Features
 
 * **based on go tags**: simply map your struct members with equivalent go tags 
-
 * **produces detailed error report**: will output informative messages in case any key is not matched 
-
 * **dynamic configuration**: supports parsing of complex kubernetes style declarative yaml configurations
-
 * **support for both json and yaml**
 
 
@@ -45,14 +42,15 @@ yamlContent, err := ioutil.ReadFile(absPath)
 config := Config{}
 err := UnmarshalYaml([]byte(yamlContent), &config)
 
-... // Consume your configuration 
+// Consume your configuration 
+fmt.Printf("Config.Name=%s",config.Name)
 ```
 
 
-### Example (dynamic configuration)
+### Example (dynamic configuration = more fun)
 
 We demonstrate how to handle a dynamic configuration.
-Key ***dynamicelement*** points to polymorphic subconfiguration wich can be of several types: "myfloat", "myint", as follow ...
+Key **dynamicelement** points to polymorphic subconfiguration wich can be of several types: "myfloat", "myint", as follow ...
 
 **config_float.yaml**
 ```yaml
@@ -76,7 +74,7 @@ config:
       valueint: 1 
 ```
 
-We define an abstract schema, implementing the **mirror.DynamicStruct** interface for the ***dynelement*** by defining the function ***SetDynamicType(string)*** to return our specialized type depending on the string parameter value
+We define an abstract schema, implementing the **mirror.DynamicStruct** interface for the **dynelement** by defining the function **SetDynamicType(string)** to return our specialized type depending on the string parameter value
 
 **schema.go**
 ```go
