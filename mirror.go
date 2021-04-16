@@ -17,7 +17,7 @@ type DynamicStruct interface {
 // Unmarshal full yaml into the configuration structure
 func UnmarshalYaml(data []byte, config interface{}) error {
 
-	rawmap := make(map[interface{}]interface{})
+	rawmap := make(map[string]interface{})
 
 	err := yaml.Unmarshal([]byte(data), rawmap)
 	if err != nil {
