@@ -303,11 +303,11 @@ func TestDecodeStructFromMapSimple(t *testing.T) {
 		Extra  ExtraTyp `mirror:"extra"`
 	}
 
-	input := map[string]interface{}{
+	input := map[interface{}]interface{}{
 		"name":   "lumontec",
 		"age":    91,
 		"emails": []string{"one", "two", "three"},
-		"extra": map[string]string{
+		"extra": map[interface{}]interface{}{
 			"twitter": "lumontec",
 		},
 	}
@@ -342,11 +342,11 @@ func TestDecodeStructFromMapErrors(t *testing.T) {
 		Extra ExtraTyp `mirror:"extra"`
 	}
 
-	input := map[string]interface{}{
+	input := map[interface{}]interface{}{
 		"name":   "lumontec",
 		"age":    91,
 		"emails": []string{"one", "two", "three"},
-		"extra": map[string]string{
+		"extra": map[interface{}]interface{}{
 			"twitter": "lumontec",
 			"medium":  "lumontec",
 		},
@@ -394,10 +394,10 @@ func TestDecodeStructFromMapDynamic(t *testing.T) {
 		Extra DynTyp `mirror:"extra,dynamic=type"`
 	}
 
-	input := map[string]interface{}{
+	input := map[interface{}]interface{}{
 		"name": "lumontec",
 		"age":  91,
-		"extra": map[string]interface{}{
+		"extra": map[interface{}]interface{}{
 			"type":  "int",
 			"value": 10,
 		},
@@ -429,10 +429,10 @@ func TestDecodeStructFromMapDynamicErr(t *testing.T) {
 		Extra DynTyp `mirror:"extra,dynamic=ty"`
 	}
 
-	input := map[string]interface{}{
+	input := map[interface{}]interface{}{
 		"name": "lumontec",
 		"age":  91,
-		"extra": map[string]interface{}{
+		"extra": map[interface{}]interface{}{
 			"type":  "int",
 			"value": 10,
 		},

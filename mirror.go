@@ -420,11 +420,11 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 	}
 
 	dataValKeys := make(map[reflect.Value]struct{})
-	dataValKeysUnused := map[string]interface{}{}
+	dataValKeysUnused := make(map[string]struct{})
 
 	for _, dataValKey := range dataVal.MapKeys() {
 		dataValKeys[dataValKey] = struct{}{}
-		dataValKeysUnused[dataValKey.String()] = struct{}{}
+		dataValKeysUnused[dataValKey.Interface().(string)] = struct{}{}
 	}
 
 	errors := make([]string, 0)
@@ -537,7 +537,7 @@ func decodeStructFromMap(name string, dataVal, val reflect.Value) error {
 		}
 
 		// Delete the key we're using from the unused map so we stop tracking
-		delete(dataValKeysUnused, rawMapKey.String())
+		delete(dataValKeysUnused, rawMapKey.Interface().(string))
 
 		// If the name is empty string, then we're at the root, and we
 		// don't dot-join the fields.
